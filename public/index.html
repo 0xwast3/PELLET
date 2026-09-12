@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PELLET — wake terminal</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="owl" aria-hidden="true">(o,o)</span>
+    <h1>PELLET</h1>
+    <p>Dormant wallets waking, and where the money went after.</p>
+    <span class="spacer"></span>
+    <span class="badge" id="mode">connecting</span>
+    <span class="badge" id="source"></span>
+  </header>
+
+  <div class="grid">
+    <section>
+      <h2>Stream</h2>
+      <table>
+        <thead><tr><th>Time</th><th>Event</th><th>Wallet</th><th>Token</th><th>Detail</th></tr></thead>
+        <tbody id="stream"><tr><td colspan="5" class="dim">Waiting for the first tick.</td></tr></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Selected</h2>
+      <div id="detail" class="dim">Pick a row to read its walls.</div>
+
+      <h2 style="margin-top:26px">Smart flow</h2>
+      <table>
+        <thead><tr><th>Token</th><th class="num">Net</th><th class="num">Wallets</th></tr></thead>
+        <tbody id="desk"><tr><td colspan="3" class="dim">No token has cleared the wallet floor yet.</td></tr></tbody>
+      </table>
+
+      <h2 style="margin-top:26px">Still asleep</h2>
+      <table>
+        <thead><tr><th>Wallet</th><th class="num">Silent</th><th class="num">DNA</th></tr></thead>
+        <tbody id="sleepers"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <footer>
+    Read-only mirror of the CLI runtime. No wallet connect, no signing, no execution.
+    Run <code>pellet terminal</code> for the full view.
+  </footer>
+</div>
+<script src="/app.js" type="module"></script>
+</body>
+</html>

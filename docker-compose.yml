@@ -1,0 +1,16 @@
+services:
+  pellet:
+    build: .
+    ports:
+      - "4721:4721"
+    environment:
+      - PORT=4721
+      - PELLET_RPC_URL=${PELLET_RPC_URL:-}
+      - REPLYNODES_API_KEY=${REPLYNODES_API_KEY:-}
+      - FOMO_BEARER_TOKEN=${FOMO_BEARER_TOKEN:-}
+    volumes:
+      - pellet-state:/app/.pellet
+    restart: unless-stopped
+
+volumes:
+  pellet-state:

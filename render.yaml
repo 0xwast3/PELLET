@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: pellet
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: node server.mjs
+    healthCheckPath: /api/state
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: PELLET_DATA_DIR
+        value: /tmp/pellet
+      - key: PELLET_RPC_URL
+        sync: false
+      - key: REPLYNODES_API_KEY
+        sync: false

@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 420" width="1000" height="420" role="img"
+     aria-label="PELLET pipeline: a tracked wallet pool and market discovery feed a candidate, the candidate passes through five walls, and the result reaches the flow desk, the roost and the pellet export.">
+  <defs>
+    <style>
+      .bg   { fill: #050703; }
+      .dot  { fill: #26400a; }
+      .box  { fill: #0e1408; stroke: #1d2612; stroke-width: 2; }
+      .wall { fill: #0e1408; stroke: #3a4728; stroke-width: 2; }
+      .lbl  { font: 500 14px ui-monospace, "DejaVu Sans Mono", monospace; fill: #dee8cd; }
+      .sub  { font: 400 11.5px ui-monospace, "DejaVu Sans Mono", monospace; fill: #7a8668; }
+      .head { font: 700 13px ui-monospace, "DejaVu Sans Mono", monospace; fill: #c9f92c; letter-spacing: .14em; }
+      .lime { fill: #c9f92c; }
+      .bad  { fill: #ff5f52; }
+      .good { fill: #7ee081; }
+      .flow { stroke: #3a4728; stroke-width: 2; fill: none; }
+      .flow-ok { stroke: #7ee081; stroke-width: 2; fill: none; }
+      .flow-no { stroke: #ff5f52; stroke-width: 2; fill: none; }
+    </style>
+    <pattern id="grid" width="18" height="18" patternUnits="userSpaceOnUse">
+      <rect width="2" height="2" class="dot"/>
+    </pattern>
+    <marker id="a" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 0 L8 4 L0 8 z" fill="#3a4728"/>
+    </marker>
+    <marker id="ag" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 0 L8 4 L0 8 z" fill="#7ee081"/>
+    </marker>
+    <marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 0 L8 4 L0 8 z" fill="#ff5f52"/>
+    </marker>
+  </defs>
+
+  <rect width="1000" height="420" class="bg"/>
+  <rect width="1000" height="420" fill="url(#grid)"/>
+  <rect x="1" y="1" width="998" height="418" fill="none" stroke="#1d2612" stroke-width="2"/>
+
+  <text x="34" y="42" class="head">HOW A WAKE BECOMES A ROW</text>
+
+  <!-- inputs -->
+  <rect x="34" y="76" width="196" height="62" class="box"/>
+  <text x="50" y="102" class="lbl">tracked wallet pool</text>
+  <text x="50" y="122" class="sub">dormancy clock per wallet</text>
+
+  <rect x="34" y="164" width="196" height="62" class="box"/>
+  <text x="50" y="190" class="lbl">market discovery</text>
+  <text x="50" y="210" class="sub">price · liquidity · volume</text>
+
+  <rect x="34" y="252" width="196" height="62" class="box"/>
+  <text x="50" y="278" class="lbl">sleeper discovery</text>
+  <text x="50" y="298" class="sub">the pool keeps growing</text>
+
+  <path d="M230 107 H286 V190" class="flow" marker-end="url(#a)"/>
+  <path d="M230 195 H286" class="flow" marker-end="url(#a)"/>
+  <path d="M230 283 H286 V200" class="flow" marker-end="url(#a)"/>
+
+  <!-- candidate -->
+  <rect x="292" y="164" width="150" height="62" class="box"/>
+  <text x="308" y="190" class="lbl">candidate</text>
+  <text x="308" y="210" class="sub">wallet × token × ticket</text>
+
+  <path d="M442 195 H482" class="flow" marker-end="url(#a)"/>
+
+  <!-- walls -->
+  <rect x="488" y="88" width="176" height="236" fill="none" stroke="#1d2612" stroke-width="2"/>
+  <text x="500" y="80" class="head">WALLS</text>
+
+  <rect x="502" y="102" width="148" height="30" class="wall"/>
+  <text x="516" y="122" class="lbl">SLEEP <tspan class="sub">&gt;= 45d</tspan></text>
+  <rect x="502" y="140" width="148" height="30" class="wall"/>
+  <text x="516" y="160" class="lbl">EDGE <tspan class="sub">DNA &gt;= 55</tspan></text>
+  <rect x="502" y="178" width="148" height="30" class="wall"/>
+  <text x="516" y="198" class="lbl">SIZE <tspan class="sub">0.35x median</tspan></text>
+  <rect x="502" y="216" width="148" height="30" class="wall"/>
+  <text x="516" y="236" class="lbl">DEPTH <tspan class="sub">&lt;= 3.00%</tspan></text>
+  <rect x="502" y="254" width="148" height="30" class="wall"/>
+  <text x="516" y="274" class="lbl">PRICE <tspan class="sub">&lt;= 900s</tspan></text>
+
+  <text x="502" y="308" class="sub">in order · first failure wins</text>
+
+  <!-- outcomes -->
+  <path d="M664 150 H716" class="flow-no" marker-end="url(#ar)"/>
+  <rect x="722" y="120" width="244" height="62" class="box"/>
+  <text x="738" y="146" class="lbl"><tspan class="bad">PASS</tspan> + the wall that refused</text>
+  <text x="738" y="166" class="sub">DEPTH 4.11% · needs &lt;= 3.00%</text>
+
+  <path d="M664 240 H716" class="flow-ok" marker-end="url(#ag)"/>
+  <rect x="722" y="210" width="244" height="62" class="box"/>
+  <text x="738" y="236" class="lbl"><tspan class="good">CAST</tspan> + recorded flow</text>
+  <text x="738" y="256" class="sub">net USD · distinct wallets · trend</text>
+
+  <path d="M844 272 V308" class="flow" marker-end="url(#a)"/>
+  <path d="M844 182 V196 H700 V308 H844" class="flow" marker-end="url(#a)"/>
+
+  <rect x="722" y="314" width="244" height="62" class="box"/>
+  <text x="738" y="340" class="lbl">terminal · flow · roost</text>
+  <text x="738" y="360" class="sub">pellet cough → md / json</text>
+
+  <text x="34" y="358" class="sub">Unknown inputs refuse with UNKNOWN.</text>
+  <text x="34" y="378" class="sub">They never quietly become zero.</text>
+  <text x="34" y="398" class="sub">Every row carries its synthetic flag.</text>
+</svg>
