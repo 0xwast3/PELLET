@@ -67,7 +67,7 @@ there, with the wall that caused it.
 Node 20 or newer. No build step, no dependencies.
 
 ```
-git clone https://github.com/YOUR_HANDLE/pellet.git
+git clone https://github.com/0xwast3/pellet.git
 cd pellet
 npm install
 cp .env.example .env
