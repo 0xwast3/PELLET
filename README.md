@@ -1,17 +1,21 @@
-[![PELLET — dormant wallets waking, and where the money went after](assets/banner.png)](assets/banner.png)
+[![PELLET — a wake terminal that catches whale wallets waking after months of silence](assets/banner.png)](assets/banner.png)
 
 # PELLET
 
-**Dormant wallets waking, and where the money went after.**
-Sleepers → wake detection → PELLET walls → smart-flow desk → roost → readable pellet.
+**A wake terminal for Robinhood Chain.**
+It watches whale wallets that went silent, catches the moment they move again,
+and tracks where the money goes next.
+
+`sleepers → wake → five walls → smart-flow desk → roost → readable pellet`
 
 ![Node 20+](https://img.shields.io/badge/node-20%2B-c9f92c?style=flat-square&labelColor=050703)
 ![Robinhood Chain](https://img.shields.io/badge/Robinhood%20Chain-4663-c9f92c?style=flat-square&labelColor=050703)
 ![Terminal](https://img.shields.io/badge/terminal-live-c9f92c?style=flat-square&labelColor=050703)
 ![No wallet connect](https://img.shields.io/badge/wallet%20connect-none-c9f92c?style=flat-square&labelColor=050703)
 ![MIT](https://img.shields.io/badge/license-MIT-c9f92c?style=flat-square&labelColor=050703)
+![Tests](https://img.shields.io/badge/tests-37-c9f92c?style=flat-square&labelColor=050703)
 
-[Install](#install) · [Terminal](#terminal) · [Walls](#the-walls) · [Flow desk](#flow-desk) · [Pellet](#the-pellet) · [Commands](#commands)
+[Install](#install) · [Terminal](#terminal) · [Walls](#the-walls) · [Flow desk](#flow-desk) · [Pellet](#the-pellet) · [Site](#the-site) · [Commands](#commands)
 
 ---
 
@@ -39,7 +43,7 @@ same runtime.
 | Pellet export | **WORKING** | full wallet record to Markdown or JSON |
 | Roost | **WORKING** | local watchlist, atomic writes |
 | Terminal UI | **WORKING** | two panes, live desk, keyboard control, clean restore |
-| Browser mirror | **WORKING** | loopback, read-only, no wallet connect |
+| Website | **WORKING** | landing, docs and a typeable web terminal on the same wall logic |
 
 [![pellet terminal](assets/terminal.png)](assets/terminal.png)
 
@@ -67,7 +71,7 @@ there, with the wall that caused it.
 Node 20 or newer. No build step, no dependencies.
 
 ```
-git clone https://github.com/0xwast3/pellet.git
+git clone https://github.com/YOUR_HANDLE/pellet.git
 cd pellet
 npm install
 cp .env.example .env
@@ -251,6 +255,29 @@ FOMO_BEARER_TOKEN=
 The two pools are never merged. You are looking at one or the other, and the
 header tells you which.
 
+## The site
+
+```
+npm run web        # serves ./site on 127.0.0.1 against the live runtime
+npm run site       # regenerates the two files the site copies from the repo
+```
+
+`site/` is the whole web presence: the landing page, the docs and a web
+terminal you can type into. It deploys as a static folder — `netlify.toml` is
+in the repository — and the same folder is what `pellet web` serves locally.
+
+The site is not a re-implementation. It imports
+[`src/core/walls.mjs`](src/core/walls.mjs), the same pure module the CLI uses,
+so a verdict shown in the browser is the verdict the terminal would print.
+`npm run site` copies that file and the bootstrap set into `site/`, and a test
+fails if the copies go stale.
+
+On a static host there is no chain to read, so every row the site renders is
+generated from the bootstrap set and marked synthetic. Open the same page under
+`pellet web` and the terminal reads your local runtime instead and drops the
+label. Fonts are self-hosted and subset; the pages make no third-party request,
+which is also covered by a test.
+
 ## Commands
 
 | Command | What it does |
@@ -264,7 +291,7 @@ header tells you which.
 | `pellet roost [add\|remove <handle>]` | local watchlist |
 | `pellet rules [--set key=value]` | inspect and tune the decision box |
 | `pellet doctor [--probe]` | RPC, chain ID, providers, credentials |
-| `pellet web` | read-only browser mirror |
+| `pellet web` | serve the site locally against the live runtime |
 
 Every flag and environment variable: [`docs/COMMANDS.md`](docs/COMMANDS.md).
 
@@ -310,7 +337,7 @@ and wallet pool both keep growing for as long as the session runs. More:
 ```
 bin/pellet.mjs              CLI entrypoint and subcommand table
 src/config.mjs              chain, default rules, palette, seed loader
-src/cli/rules.mjs           the walls — pure, no I/O, fully tested
+src/cli/rules.mjs           CLI re-export of the walls
 src/cli/runtime.mjs         universe, wallet pool, flow window, tick loop
 src/cli/render.mjs          full-screen frame composition
 src/cli/terminal.mjs        raw-mode keyboard, redraw timer, clean restore
@@ -322,8 +349,10 @@ src/providers/wallets.mjs   tracked wallet pool
 src/services/state.mjs      atomic local state: rules and roost
 src/services/pellet.mjs     wallet record construction and Markdown export
 data/seed.json              bootstrap set
-server.mjs                  optional read-only browser wrapper
-public/                     browser mirror of the same data
+src/core/walls.mjs          the walls — pure, shared by the CLI and the site
+scripts/build-site.mjs      copies the walls and the seed into site/
+server.mjs                  serves ./site plus a read-only JSON endpoint
+site/                       landing page, docs, web terminal, self-hosted fonts
 assets/                     owl, banner, captures and the pipeline diagram
 ```
 
@@ -333,11 +362,13 @@ assets/                     owl, banner, captures and the pipeline diagram
 npm test
 ```
 
-Thirty tests, no network, no fixtures downloaded at run time. They cover wall
+Thirty-seven tests, no network, no fixtures downloaded at run time. They cover wall
 ordering and refusal ownership, `N/A` versus `UNKNOWN` versus `FAIL`, dormancy
 arithmetic, the growing wallet pool, desk sorting and the distinct-wallet floor,
 trim subtraction, event-buffer capping, run-to-run determinism under a fixed
-seed, pellet reconstruction with missing fields, and atomic local state.
+seed, pellet reconstruction with missing fields, atomic local state, and the
+site: that its generated copies match their sources, that the pages call no
+third party, and that the synthetic label is present wherever the engine renders.
 
 CI runs on Node 20, 22 and 24.
 

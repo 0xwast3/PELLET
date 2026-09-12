@@ -31,6 +31,14 @@ Sampled from the mascot, and the same values the CLI writes as 24-bit ANSI.
 | good | `#7ee081` | cleared walls, positive flow |
 | bad | `#ff5f52` | refused walls, negative flow |
 
+## Banner copy
+
+Regenerate with `python3 scripts/build-banner.py` after editing the strings at
+the top of that file. The banner has to answer three questions in one glance:
+what it is (`WAKE TERMINAL`), what it does (the two-line tagline), and what it
+runs on (the meta line). The chain ID is deliberately not on the banner — it is
+a technical detail for the docs, not a selling point.
+
 ## Type
 
 | Role | Face |

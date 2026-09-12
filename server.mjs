@@ -7,8 +7,11 @@ import { read as readState, toggleRoost } from './src/services/state.mjs';
 import { cough } from './src/services/pellet.mjs';
 
 const PORT = Number(process.env.PORT || 4721);
-const PUBLIC = join(ROOT, 'public');
-const TYPES = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json' };
+const SITE = join(ROOT, 'site');
+const TYPES = {
+  '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript',
+  '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png'
+};
 
 const rt = createRuntime({ mode: process.argv.includes('--live') ? 'live' : 'cached' });
 await rt.boot();
@@ -56,9 +59,12 @@ const server = createServer(async (req, res) => {
     return json(res, 200, cough(wallet, { events: rt.state.events, rules: rt.state.rules }));
   }
 
-  const file = url.pathname === '/' ? 'index.html' : url.pathname.replace(/^\/+/, '');
+  // static site, served from the same folder Netlify publishes
+  let file = url.pathname === '/' ? 'index.html' : url.pathname.replace(/^\/+/, '');
+  if (!extname(file)) file += '.html';
+  if (file.includes('..')) { res.writeHead(400).end('bad path'); return; }
   try {
-    const body = await readFile(join(PUBLIC, file));
+    const body = await readFile(join(SITE, file));
     res.writeHead(200, { 'content-type': TYPES[extname(file)] || 'application/octet-stream' });
     res.end(body);
   } catch {
@@ -68,7 +74,10 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, '127.0.0.1', () => {
-  process.stdout.write(`PELLET web wrapper on http://127.0.0.1:${PORT}\nRead-only mirror of the CLI runtime. No wallet connect, no signing.\n`);
+  process.stdout.write(
+    `PELLET site on http://127.0.0.1:${PORT}\n` +
+    `Serving ./site against the live runtime. Read-only: no wallet connect, no signing.\n`
+  );
 });
 
 export { server };

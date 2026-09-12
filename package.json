@@ -1,10 +1,14 @@
 {
   "name": "pellet",
-  "version": "0.5.0",
-  "description": "CLI-first wake terminal for Robinhood Chain — dormant wallet wakes, smart-money flow, roost watchlist and readable pellet exports.",
+  "version": "0.6.1",
+  "description": "A wake terminal for Robinhood Chain \u2014 it watches whale wallets that went silent, catches the moment they move again, and tracks where the money goes next.",
   "type": "module",
-  "bin": { "pellet": "bin/pellet.mjs" },
-  "engines": { "node": ">=20" },
+  "bin": {
+    "pellet": "bin/pellet.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node bin/pellet.mjs terminal",
     "wake": "node bin/pellet.mjs wake",
@@ -12,10 +16,32 @@
     "roost": "node bin/pellet.mjs roost",
     "night": "node bin/pellet.mjs terminal --night",
     "doctor": "node bin/pellet.mjs doctor",
-    "web": "node server.mjs",
+    "site": "node scripts/build-site.mjs",
+    "web": "npm run site && node server.mjs",
     "test": "node --test test/*.test.mjs"
   },
-  "keywords": ["robinhood-chain","cli","tui","terminal","smart-money","whale","dormant","crypto","owl"],
+  "keywords": [
+    "robinhood-chain",
+    "cli",
+    "tui",
+    "terminal",
+    "smart-money",
+    "whale",
+    "dormant",
+    "crypto",
+    "owl"
+  ],
   "license": "MIT",
-  "dependencies": {}
+  "dependencies": {},
+  "files": [
+    "bin",
+    "src",
+    "data",
+    "docs",
+    "site",
+    "scripts",
+    "server.mjs",
+    "README.md",
+    "LICENSE"
+  ]
 }

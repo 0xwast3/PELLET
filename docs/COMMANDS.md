@@ -80,7 +80,12 @@ the market and wallet providers and reports what came back.
 
 ## `pellet web`
 
-Read-only browser mirror of the same runtime on `127.0.0.1`. No wallet connect.
+Serves `./site` on `127.0.0.1` — the landing page, the docs and the web terminal
+— against the live runtime rather than the bootstrap set. Read-only: no wallet
+connect, no signing.
+
+`npm run web` runs `npm run site` first so the copied wall logic and bootstrap
+set are current. `npm run site` on its own just regenerates those copies.
 
 ## Environment
 

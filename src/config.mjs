@@ -13,20 +13,8 @@ export const CHAIN = {
 
 export const DATA_DIR = process.env.PELLET_DATA_DIR || join(process.cwd(), '.pellet');
 
-/**
- * The PELLET decision box. Every wake and every inflow is pushed through
- * these five walls in order. The first wall that fails owns the refusal.
- */
-export const DEFAULT_RULES = {
-  sleepDays: 45,
-  minDna: 55,
-  sizeRatio: 0.35,
-  maxImpact: 0.03,
-  maxMarkAgeSec: 900,
-  flowWindowMin: 60,
-  minFlowWallets: 2,
-  roostLimit: 40
-};
+// The decision box lives in src/core/walls.mjs so the website can run it too.
+export { DEFAULT_RULES } from './core/walls.mjs';
 
 /**
  * Brand palette, sampled from the mascot. 24-bit colour: the lime is the

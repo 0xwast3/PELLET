@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.6.0
+
+- Website added under `site/`: landing page, docs and a web terminal you can
+  type into. Deploys as a static folder; `pellet web` serves the same folder
+  against the live runtime.
+- The walls moved to `src/core/walls.mjs` — pure, no imports, no I/O. The CLI
+  and the site now evaluate candidates with the same file, so a verdict shown
+  in a browser is the verdict the terminal would print.
+- `npm run site` copies that module and the bootstrap set into `site/`. Tests
+  fail if the copies go stale.
+- Fonts are self-hosted and subset. The pages make no third-party request, and
+  a test enforces it.
+- The old `public/` mirror is gone; `server.mjs` serves `site/` and keeps the
+  read-only JSON endpoint the web terminal probes for a local runtime.
+
 ## 0.5.0
 
 - Brand pass: the mascot owl ships in `assets/`, and the terminal palette moved

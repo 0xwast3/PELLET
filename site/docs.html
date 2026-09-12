@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PELLET — docs</title>
+<meta name="description" content="PELLET documentation: quickstart, terminal keys, the five walls, commands, architecture and safety.">
+<meta name="theme-color" content="#050703">
+<link rel="icon" href="assets/avatar.png">
+<link rel="preload" href="fonts/jetbrains-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .doc { display: grid; grid-template-columns: 210px 1fr; gap: 44px; align-items: start; padding-top: 34px; }
+  @media (max-width: 880px) { .doc { grid-template-columns: 1fr; } .toc { position: static !important; } }
+  .toc { position: sticky; top: 82px; border-left: 1px solid var(--line); padding-left: 16px; }
+  .toc a { display: block; color: var(--dim); font-size: 12.5px; padding: 5px 0; }
+  .toc a:hover, .toc a.on { color: var(--lime); }
+  .doc article section { padding-bottom: 14px; }
+  .doc h2 { margin-top: 46px; }
+  .doc h3 { margin-top: 28px; color: var(--lime); font-size: 14px; letter-spacing: .06em; }
+  .doc p, .doc li { color: var(--dim); }
+  .doc li { margin: 5px 0; }
+  .doc strong { color: var(--bone); font-weight: 500; }
+  .doc code { color: var(--bone); background: var(--raise); padding: 1px 5px; border: 1px solid var(--line); font-size: 12.5px; }
+  .doc pre code { border: 0; padding: 0; background: none; }
+  .doc table { margin: 16px 0; }
+  .doc td code { font-size: 12px; }
+  .kbd { display: inline-block; border: 1px solid var(--line-2); padding: 1px 7px; color: var(--bone); font-size: 12px; }
+</style>
+</head>
+<body id="top">
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="index.html"><span class="owl" id="owl">(o,o)</span><b>PELLET</b><span>DOCS</span></a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="terminal.html">Terminal</a>
+      <a href="https://github.com/0xwast3/pellet">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap doc">
+  <aside class="toc">
+    <a href="#quickstart">01 Quickstart</a>
+    <a href="#terminal">02 Terminal</a>
+    <a href="#strategy">03 Strategy</a>
+    <a href="#commands">04 Commands</a>
+    <a href="#pellet">05 The pellet</a>
+    <a href="#architecture">06 Architecture</a>
+    <a href="#safety">07 Safety</a>
+  </aside>
+
+  <article>
+    <div class="rule" style="margin-top:0"><i>//</i> DOCUMENTATION</div>
+    <h1 style="font-size:clamp(30px,4.6vw,50px)">READ IT, THEN RUN IT.</h1>
+    <p style="margin-bottom:8px">
+      PELLET is a CLI-first wake terminal for Robinhood Chain. It watches wallets
+      that went quiet, pushes every wake through five readable walls, and keeps a
+      rolling desk of where tracked money actually went.
+    </p>
+
+    <section id="quickstart">
+      <h2>01 · Quickstart</h2>
+      <p>Node 20 or newer. No build step, no dependencies.</p>
+      <pre><code>git clone https://github.com/0xwast3/pellet.git
+cd pellet
+npm install
+cp .env.example .env
+npm run doctor</code></pre>
+      <p>Install it as a local command if you would rather type <code>pellet</code>:</p>
+      <pre><code>npm install -g .
+pellet doctor --probe</code></pre>
+      <h3>Sixty seconds</h3>
+      <pre><code>npm start      <span class="c"># two-pane terminal</span>
+npm run wake   <span class="c"># raw scrolling feed</span>
+npm run flow   <span class="c"># ranked desk, then exit</span>
+npm run night  <span class="c"># high-cadence, for recording</span>
+npm run web    <span class="c"># this site, served locally, on live data</span></code></pre>
+      <p>Public mode runs with no secret at all. A read credential is optional and
+      only replaces the tracked wallet pool.</p>
+    </section>
+
+    <section id="terminal">
+      <h2>02 · Terminal</h2>
+      <p>Three things stay on screen at once: the stream, the reasoning for the
+      selected row, and the desk. Nothing you need to make a call hides behind a
+      keystroke.</p>
+      <table>
+        <thead><tr><th>EVENT</th><th>MEANING</th></tr></thead>
+        <tbody>
+          <tr><td><code>WAKE</code></td><td>a wallet past the SLEEP threshold signed something</td></tr>
+          <tr><td><code>FOUND</code></td><td>a new sleeper crossed the threshold and joined the pool</td></tr>
+          <tr><td><code>INFLOW</code></td><td>an already-awake tracked wallet added size</td></tr>
+          <tr><td><code>TRIM</code></td><td>a tracked wallet reduced; subtracts from the desk</td></tr>
+          <tr><td><code>NEW</code></td><td>a fresh market entered the universe</td></tr>
+          <tr><td><code>MOVE</code></td><td>a live mark changed</td></tr>
+          <tr><td><code>CAST</code></td><td>the walls were re-run against open context</td></tr>
+          <tr><td><code>SYNC</code></td><td>a provider refresh or a local write completed</td></tr>
+        </tbody>
+      </table>
+      <h3>Keys</h3>
+      <p>
+        <span class="kbd">↑ ↓</span> move ·
+        <span class="kbd">f</span> cycle ALL → CAST → PASS → WAKE ·
+        <span class="kbd">w</span> wakes only ·
+        <span class="kbd">space</span> roost ·
+        <span class="kbd">c</span> cough a pellet ·
+        <span class="kbd">p</span> pause ·
+        <span class="kbd">r</span> refresh ·
+        <span class="kbd">q</span> quit
+      </p>
+      <p>The owl in the header blinks on alternate frames. <strong>If it stops
+      blinking, the stream is paused.</strong></p>
+      <h3>Modes</h3>
+      <table>
+        <thead><tr><th>MODE</th><th>WHAT IT DOES</th></tr></thead>
+        <tbody>
+          <tr><td><code>LIVE</code></td><td>probes chain and market providers; clears the synthetic flag only if discovery resolved</td></tr>
+          <tr><td><code>CACHED</code></td><td>boots instantly from the bootstrap set and stays usable offline</td></tr>
+          <tr><td><code>NIGHT</code></td><td>high-cadence stream for recordings and screenshares</td></tr>
+        </tbody>
+      </table>
+      <p>Cached and night rows are generated from the bootstrap set, and they say
+      so — in the header, in every event object, and in every exported pellet.
+      A screenshot and a file cannot disagree about where a number came from.</p>
+    </section>
+
+    <section id="strategy">
+      <h2>03 · Strategy</h2>
+      <h3>Why dormancy is the filter</h3>
+      <p>An active wallet trades constantly, so any one of its entries carries
+      almost no information. A wallet silent for a year that then signs something
+      has made a decision, not followed a habit. <strong>The silence is the
+      signal, and it costs one timestamp per wallet to measure.</strong></p>
+      <h3>The walls</h3>
+      <table>
+        <thead><tr><th>WALL</th><th>DEFAULT</th><th>WHAT IT ASKS</th></tr></thead>
+        <tbody>
+          <tr><td><code>SLEEP</code></td><td>&gt;= 45d</td><td>was this wallet actually silent, or just slow?</td></tr>
+          <tr><td><code>EDGE</code></td><td>DNA &gt;= 55</td><td>does the wallet have a record worth reading?</td></tr>
+          <tr><td><code>SIZE</code></td><td>&gt;= 0.35x median</td><td>is this a real ticket for <em>this</em> wallet?</td></tr>
+          <tr><td><code>DEPTH</code></td><td>&lt;= 3.00%</td><td>is the pool deep enough to absorb that ticket?</td></tr>
+          <tr><td><code>PRICE</code></td><td>&lt;= 900s</td><td>is there a fresh mark to read the entry against?</td></tr>
+        </tbody>
+      </table>
+      <h3>SIZE is relative on purpose</h3>
+      <p>A 4 ETH ticket is enormous for a wallet whose median is 0.05 and
+      unremarkable for one whose median is 6. Absolute thresholds tell you which
+      wallets are rich. Relative thresholds tell you which wallets are serious.</p>
+      <h3>SLEEP is not silently passed</h3>
+      <p>An inflow from a wallet that never went quiet is still worth ranking on
+      the desk, but it is not a wake. Rather than passing SLEEP quietly, the trace
+      records it as <code>N/A</code>. You always know which of the two you are
+      looking at.</p>
+      <h3>Unknown is not zero</h3>
+      <p>If liquidity cannot be read, DEPTH returns <code>UNKNOWN</code> and the
+      candidate is refused. It does not quietly become 0% and pass. Every refusal
+      names its wall, including the ones caused by missing data.</p>
+      <h3>The flow desk</h3>
+      <p>Per token inside a rolling window: net USD in minus out, the number of
+      <strong>distinct</strong> tracked wallets, ticket count, average ticket and a
+      cumulative sparkline. Net flow is the headline; the wallet count is the
+      guard. Reductions subtract, so a token can rank negative — that is a result,
+      not a gap.</p>
+      <p><a href="index.html#walls">Try the wall simulator →</a></p>
+    </section>
+
+    <section id="commands">
+      <h2>04 · Commands</h2>
+      <table>
+        <thead><tr><th>COMMAND</th><th>WHAT IT DOES</th></tr></thead>
+        <tbody>
+          <tr><td><code>pellet terminal</code></td><td>two-pane interactive terminal · <code>--night</code> <code>--live</code> <code>--for n</code></td></tr>
+          <tr><td><code>pellet wake</code></td><td>scrolling wake feed · <code>--cast-only</code> <code>--json</code> <code>--for n</code></td></tr>
+          <tr><td><code>pellet flow</code></td><td>ranked smart desk · <code>--top n</code> <code>--json</code></td></tr>
+          <tr><td><code>pellet sleepers</code></td><td>who is still silent, longest first</td></tr>
+          <tr><td><code>pellet wallet &lt;handle&gt;</code></td><td>one wallet read out</td></tr>
+          <tr><td><code>pellet cough &lt;handle&gt;</code></td><td>write the pellet · <code>--format md|json</code> <code>--output file</code></td></tr>
+          <tr><td><code>pellet roost</code></td><td>local watchlist · <code>add</code> / <code>remove</code></td></tr>
+          <tr><td><code>pellet rules</code></td><td>the decision box · <code>--set key=value</code></td></tr>
+          <tr><td><code>pellet doctor</code></td><td>RPC, chain ID, providers, credentials · <code>--probe</code></td></tr>
+          <tr><td><code>pellet web</code></td><td>serve this site locally against the live runtime</td></tr>
+        </tbody>
+      </table>
+      <h3>Tuning the box</h3>
+      <pre><code>pellet rules --set sleepDays=90
+pellet rules --set maxImpact=0.015
+pellet rules --set minFlowWallets=4</code></pre>
+      <p>Valid keys: <code>sleepDays</code>, <code>minDna</code>, <code>sizeRatio</code>,
+      <code>maxImpact</code>, <code>maxMarkAgeSec</code>, <code>flowWindowMin</code>,
+      <code>minFlowWallets</code>, <code>roostLimit</code>.</p>
+      <h3>Environment</h3>
+      <table>
+        <thead><tr><th>VARIABLE</th><th>PURPOSE</th></tr></thead>
+        <tbody>
+          <tr><td><code>PELLET_RPC_URL</code></td><td>custom HTTP(S) provider</td></tr>
+          <tr><td><code>REPLYNODES_API_KEY</code></td><td>optional wallet-activity read credential</td></tr>
+          <tr><td><code>FOMO_BEARER_TOKEN</code></td><td>alternative read credential</td></tr>
+          <tr><td><code>PELLET_DATA_DIR</code></td><td>roost, rules and written pellets</td></tr>
+          <tr><td><code>PORT</code></td><td>port for <code>pellet web</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="pellet">
+      <h2>05 · The pellet</h2>
+      <p>An owl swallows its prey whole and coughs up a pellet: a dry, readable
+      record of everything it ate, bones included. Nothing is digested away.</p>
+      <pre><code>pellet cough night_porter --format md --output porter.md</code></pre>
+      <p>One wallet, brought back up whole: score, trades, win rate, median ticket,
+      realized, dormancy, everything it was observed doing this session,
+      <strong>which wall refused it and how often</strong>, and a twenty-row trail
+      with the reason attached to each row.</p>
+      <p>Fields the runtime could not observe are <code>null</code>, never
+      <code>0</code>. Rows produced by a synthetic stream carry the flag into the
+      file, so an exported pellet and a screenshot cannot disagree.</p>
+      <p><a href="index.html#pellet">Read one on the landing page →</a></p>
+    </section>
+
+    <section id="architecture">
+      <h2>06 · Architecture</h2>
+      <p>One Node process, no database, no daemon. It holds three things in memory
+      and writes only small files to disk.</p>
+      <pre><code>data/seed.json          bootstrap set — cold start and offline runs
+.pellet/runtime.json    local rules and roost, written atomically
+.pellet/pellet-*.json   pellets written from the terminal with c</code></pre>
+      <h3>The three structures</h3>
+      <ul>
+        <li><strong>Token universe</strong> — grows during the session as discovery
+        returns symbols it has not seen. It never shrinks, so a token that stops
+        being returned keeps its last mark and ages out of PRICE instead of
+        vanishing from the screen.</li>
+        <li><strong>Wallet pool</strong> — keyed by handle, each with a
+        <code>lastActive</code> stamp that dormancy derives from. A discovery pass
+        adds wallets crossing the threshold, so a long session keeps finding new
+        sleepers rather than draining.</li>
+        <li><strong>Flow window</strong> — per token, net USD, the set of distinct
+        wallets, ticket count and a sparkline. The set is what stops one wallet
+        cycling a position from looking like conviction.</li>
+      </ul>
+      <h3>One implementation of the walls</h3>
+      <p><code>src/core/walls.mjs</code> is pure: no imports, no I/O, no clock of
+      its own. The CLI imports it and so does this website. A verdict shown here
+      is the verdict the terminal would print, because it is the same file.</p>
+      <h3>Providers</h3>
+      <p><code>src/providers/http.mjs</code> is the only place <code>fetch</code> is
+      called. Hard timeout, no retries, never throws upward — every provider
+      returns a result object with an <code>error</code> field. The wallet provider
+      does not merge live and bootstrap rows: you are looking at one pool or the
+      other, and the header says which.</p>
+      <img src="assets/how-it-works.svg" alt="The PELLET pipeline" style="width:100%;margin-top:22px;border:1px solid var(--line)">
+    </section>
+
+    <section id="safety">
+      <h2>07 · Safety</h2>
+      <h3>What PELLET does not do</h3>
+      <ul>
+        <li>It does not connect a wallet — not in the CLI, not on this site.</li>
+        <li>It does not sign, send, or queue transactions.</li>
+        <li>It does not hold, read or ask for a private key or seed phrase. No code
+        path in the repository accepts one.</li>
+        <li>It does not rate token safety, predict price, or tell you to buy anything.</li>
+      </ul>
+      <h3>Before you act on a screen</h3>
+      <p><strong>A wake is not an endorsement.</strong> A wallet with a strong
+      record waking up on a token is one observation. It does not mean the wallet
+      is right, that it is not exiting, or that it has not been compromised.</p>
+      <p><strong>A cleared wall set is not a recommendation.</strong>
+      <code>CAST</code> means five specific conditions held at one moment. It says
+      nothing about whether entering was a good idea.</p>
+      <p><strong>Believe the synthetic label.</strong> On a static host there is no
+      chain to read, so every row on this site is generated from the bootstrap set.
+      Do not trade a screenshot without checking which mode produced it.</p>
+      <h3>Credentials</h3>
+      <p>The optional read credentials are read-only leaderboard keys. Keep them in
+      <code>.env</code>, which is gitignored, and never in a screenshot.
+      <code>pellet doctor</code> reports only whether a credential is present,
+      never its value.</p>
+    </section>
+  </article>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img class="owl-mark" src="assets/avatar.png" alt="">
+    <div><div style="color:var(--bone)">PELLET</div><small>Whale wallets waking after months of silence, and where the money goes.</small></div>
+    <nav>
+      <a href="index.html">Home</a><a href="terminal.html">Terminal</a>
+      <a href="https://github.com/0xwast3/pellet">GitHub</a>
+      <small>ROBINHOOD CHAIN · 4663</small>
+    </nav>
+  </div>
+</footer>
+
+<script type="module">
+  const owl = document.getElementById('owl');
+  let lid = false;
+  setInterval(() => { lid = !lid; owl.textContent = lid ? '(-,-)' : '(o,o)'; }, 2600);
+
+  const links = [...document.querySelectorAll('.toc a')];
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      links.forEach((a) => a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id));
+    }
+  }, { rootMargin: '-80px 0px -70% 0px' });
+  document.querySelectorAll('article section').forEach((s) => io.observe(s));
+</script>
+</body>
+</html>

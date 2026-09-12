@@ -15,6 +15,11 @@
 It reads public state — chain RPC and market data — and prints what it read with
 the reasoning attached. That is the whole product.
 
+The website is the same story. It has no wallet connect, renders every row from
+the bootstrap set when hosted statically, and labels those rows synthetic in the
+header and in the data. Its fonts are self-hosted, so loading a page does not
+tell a third party that you opened it.
+
 ## Before you act on a screen
 
 **A wake is not an endorsement.** A wallet with a strong record waking up on a

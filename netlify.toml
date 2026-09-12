@@ -1,0 +1,32 @@
+# The site is a static folder. `npm run site` regenerates the two files it
+# copies from the repository (the wall logic and the bootstrap set) so a deploy
+# can never drift from the code it documents.
+
+[build]
+  command = "npm run site"
+  publish = "site"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[redirects]]
+  from = "/terminal"
+  to = "/terminal.html"
+  status = 200
+
+[[redirects]]
+  from = "/docs"
+  to = "/docs.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "SAMEORIGIN"
+
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

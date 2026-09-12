@@ -69,7 +69,8 @@ looking at the live pool or the bootstrap pool, and the header says which.
 ```
 bin/pellet.mjs              CLI entrypoint and subcommand table
 src/config.mjs              chain, rules, palette, seed loader
-src/cli/rules.mjs           the walls — pure, no I/O, fully tested
+src/core/walls.mjs          the walls — pure, no imports, shared with the site
+src/cli/rules.mjs           CLI re-export of the walls
 src/cli/runtime.mjs         universe, pool, flow window, tick loop
 src/cli/render.mjs          full-screen frame composition
 src/cli/terminal.mjs        raw-mode keyboard, redraw timer, restore on exit
@@ -80,13 +81,21 @@ src/providers/dex.mjs       market discovery and marks
 src/providers/wallets.mjs   tracked wallet pool
 src/services/state.mjs      atomic local state: rules and roost
 src/services/pellet.mjs     wallet record construction and Markdown export
-server.mjs                  optional read-only browser wrapper
-public/                     browser mirror of the same data
+scripts/build-site.mjs      syncs the site's generated copies
+server.mjs                  serves ./site plus a read-only JSON endpoint
+site/                       landing page, docs, web terminal, self-hosted fonts
 ```
 
-`rules.mjs` has no imports beyond configuration and does no I/O. That is
-deliberate: the decision box is the part that has to be auditable, so it is the
-part that is easiest to test in isolation.
+`src/core/walls.mjs` has no imports at all and does no I/O — not even a clock of
+its own. That is deliberate twice over. The decision box is the part that has to
+be auditable, so it is the part that is easiest to test in isolation; and being
+dependency-free means the website can import the identical file. A verdict shown
+in a browser is the verdict the terminal would print, because it is the same
+code, not a port of it.
+
+`scripts/build-site.mjs` copies that module and `data/seed.json` into `site/` so
+the folder deploys on its own. Both copies carry a generated banner, and
+`test/site.test.mjs` fails if either drifts from its source.
 
 ## Terminal restore
 

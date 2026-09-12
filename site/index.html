@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PELLET — wake terminal for Robinhood Chain</title>
+<meta name="description" content="PELLET is a CLI-first wake terminal for Robinhood Chain. It watches wallets that went quiet, pushes every wake through five readable walls, and keeps a rolling desk of where tracked money actually went.">
+<meta name="theme-color" content="#050703">
+<meta property="og:title" content="PELLET — wake terminal for Robinhood Chain">
+<meta property="og:description" content="Whale wallets waking after months of silence, and where the money goes.">
+<meta property="og:image" content="assets/social-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/avatar.png">
+<link rel="preload" href="fonts/jetbrains-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body id="top">
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top">
+      <span class="owl" id="owl">(o,o)</span><b>PELLET</b><span>WAKE TERMINAL · RH CHAIN</span>
+    </a>
+    <nav>
+      <a href="#terminal">Terminal</a>
+      <a href="#walls">Walls</a>
+      <a href="#flow" class="opt">Flow</a>
+      <a href="#pellet" class="opt">Pellet</a>
+      <a href="docs.html">Docs</a>
+      <a href="https://github.com/0xwast3/pellet">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ---------------- hero ---------------- -->
+  <section class="hero">
+    <div>
+      <span class="status"><i class="dot"></i> PELLET ENGINE · WAKE DETECTION · ONLINE</span>
+      <h1>SILENCE IS<br>THE <em>SIGNAL.</em></h1>
+      <p class="lede">
+        An active wallet trades constantly, so any one entry says almost nothing.
+        A wallet silent for a year that suddenly signs something has made a
+        decision. PELLET watches for exactly that, runs it through five readable
+        walls, and prints the wall that refused it.
+      </p>
+      <div class="btn-row">
+        <a class="btn primary" href="terminal.html">OPEN TERMINAL ↗</a>
+        <a class="btn" href="https://github.com/0xwast3/pellet">VIEW GITHUB ↗</a>
+        <a class="btn" href="docs.html">READ DOCS</a>
+      </div>
+      <div class="cmdline">
+        <b>$</b><code id="install">git clone https://github.com/0xwast3/pellet &amp;&amp; npm i &amp;&amp; npm start</code>
+        <button data-copy="#install">COPY</button>
+      </div>
+    </div>
+
+    <div class="panel" id="hero-panel">
+      <div class="panel-head">
+        <span>pellet@rh:~/wake</span><span class="tag warn" id="hero-mode">SYNTHETIC</span>
+      </div>
+      <div class="clock" id="clock">
+        <div class="who">tracked sleeper <b id="clock-who">@salt_cellar</b></div>
+        <div class="big" id="clock-big">456d 00:00:00</div>
+        <div class="cap" id="clock-cap">SILENT · WALLS ARMED</div>
+      </div>
+      <div class="stream" id="hero-stream"></div>
+    </div>
+  </section>
+
+  <div class="band">
+    <div><b id="k-pool">18</b><span>TRACKED · GROWING</span></div>
+    <div><b>5</b><span>DECISION WALLS</span></div>
+    <div><b id="k-wake">0</b><span>WAKES THIS SESSION</span></div>
+    <div><b>4663</b><span>CHAIN ID</span></div>
+  </div>
+
+  <!-- ---------------- terminal ---------------- -->
+  <section id="terminal">
+    <div class="rule"><i>01</i> THE PRODUCT</div>
+    <div class="split wide-left">
+      <div>
+        <h2>THE TERMINAL IS THE PRODUCT.</h2>
+        <p>
+          The site explains it, GitHub ships it. Everything you need to make a
+          call sits on one screen: the stream on the left, the full reasoning for
+          the selected row on the right, the flow desk underneath.
+          <strong>Nothing hides behind a keystroke.</strong>
+        </p>
+        <p>
+          The web terminal below runs the same wall logic as the CLI, file for
+          file. On a static host there is no chain to read, so every row is
+          marked synthetic — in the header, in the JSON, and in any pellet you
+          export.
+        </p>
+        <div class="btn-row">
+          <a class="btn primary" href="terminal.html">INTERACTIVE ↗</a>
+          <a class="btn" href="https://github.com/0xwast3/pellet/blob/main/src/cli/runtime.mjs">SOURCE ↗</a>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span>STILL ASLEEP</span><span class="tag" id="sleep-count">—</span></div>
+        <div class="panel-body">
+          <table>
+            <thead><tr><th>WALLET</th><th class="num">SILENT</th><th class="num">DNA</th></tr></thead>
+            <tbody id="sleepers"></tbody>
+          </table>
+          <p class="notice">The pool is not a frozen list. Wallets keep crossing the
+          threshold, so the terminal keeps finding new sleepers for as long as it runs.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------- wall simulator ---------------- -->
+  <section id="walls">
+    <div class="rule"><i>02</i> THE LOOP</div>
+    <h2>ONE WAKE. FIVE WALLS. ONE REFUSAL.</h2>
+    <p>
+      A score is context, not permission. The walls are evaluated in order and
+      the first one that fails owns the refusal — so you never get a verdict
+      without the reason attached. <strong>Move the dials and watch the box flip.</strong>
+      This runs the real <code>evaluate()</code>, not a mock-up of it.
+    </p>
+
+    <div class="panel" style="margin-top:24px">
+      <div class="panel-head"><span>WALL SIMULATOR</span><span class="tag">src/core/walls.mjs</span></div>
+      <div class="sim">
+        <div class="controls">
+          <div class="field">
+            <label>CANDIDATE KIND</label>
+            <div class="seg" id="kind">
+              <button data-kind="WAKE" aria-pressed="true">WAKE</button>
+              <button data-kind="INFLOW" aria-pressed="false">INFLOW</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>DORMANCY <b><span id="v-sleep">214</span>d</b></label>
+            <input type="range" id="s-sleep" min="0" max="700" value="214">
+          </div>
+          <div class="field">
+            <label>WALLET DNA <b id="v-dna">76</b></label>
+            <input type="range" id="s-dna" min="20" max="99" value="76">
+          </div>
+          <div class="field">
+            <label>TICKET <b><span id="v-ticket">1.20</span> ETH</b></label>
+            <input type="range" id="s-ticket" min="1" max="600" value="120">
+          </div>
+          <div class="field">
+            <label>MEDIAN TICKET <b><span id="v-median">0.60</span> ETH</b></label>
+            <input type="range" id="s-median" min="1" max="400" value="60">
+          </div>
+          <div class="field">
+            <label>POOL LIQUIDITY <b id="v-liq">$180k</b></label>
+            <input type="range" id="s-liq" min="10" max="1400" value="180">
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>MARK AGE <b><span id="v-mark">40</span>s</b></label>
+            <input type="range" id="s-mark" min="0" max="2400" value="40">
+          </div>
+        </div>
+        <div class="walls">
+          <div id="sim-walls"></div>
+          <div class="verdict" id="sim-verdict"></div>
+          <p class="notice" style="margin-top:14px">
+            <b>Unknown never becomes zero.</b> Drag liquidity to its floor and
+            DEPTH refuses with UNKNOWN rather than quietly reading 0% and passing.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------- flow ---------------- -->
+  <section id="flow">
+    <div class="rule"><i>03</i> SMART FLOW</div>
+    <div class="split wide-right">
+      <div>
+        <h2>NET FLOW IS THE HEADLINE. THE WALLET COUNT IS THE GUARD.</h2>
+        <p>
+          One wallet cycling the same position eight times produces a large
+          number and means nothing. A token does not rank until at least two
+          <strong>distinct</strong> tracked wallets have touched it.
+        </p>
+        <p>
+          Reductions subtract, so a token can rank negative. That is a result,
+          not a gap in the data.
+        </p>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span>DESK · 60m WINDOW</span><span class="tag" id="desk-tag">RANKING</span></div>
+        <div class="panel-body">
+          <table>
+            <thead><tr><th>TOKEN</th><th class="num">NET FLOW</th><th class="num">WALLETS</th><th class="num">AVG</th><th>TREND</th></tr></thead>
+            <tbody id="desk"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------- pellet ---------------- -->
+  <section id="pellet">
+    <div class="rule"><i>04</i> THE PELLET</div>
+    <div class="split">
+      <div>
+        <h2>NOTHING IS DIGESTED.</h2>
+        <p>
+          An owl swallows its prey whole and coughs up a pellet: a dry, readable
+          record of everything it ate, bones included.
+        </p>
+        <p>
+          That is the export. <code>pellet cough &lt;handle&gt;</code> brings one
+          wallet back up whole — dormancy, record, every wake, and
+          <strong>every refusal it was ever given, with the wall that caused it.</strong>
+          Pick a sleeper and read one.
+        </p>
+        <div class="picker" id="picker"></div>
+        <div class="btn-row" style="margin-top:6px">
+          <a class="btn" href="docs.html#pellet">EXPORT FORMAT →</a>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span>pellet cough</span><span class="tag" id="cough-tag">—</span></div>
+        <div class="panel-body receipt" id="receipt"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------- sixty seconds ---------------- -->
+  <section id="start">
+    <div class="rule"><i>05</i> SIXTY SECONDS</div>
+    <h2>CLONE. CHECK. RUN.</h2>
+    <p>Everything is available from the CLI. No browser wallet is required to
+    open the product or inspect the data.</p>
+    <div class="steps" style="margin-top:24px">
+      <div>
+        <span class="no">01</span><h3>INSTALL</h3>
+        <pre>git clone &lt;repo&gt;
+cd pellet
+npm install
+npm run doctor</pre>
+      </div>
+      <div>
+        <span class="no">02</span><h3>TERMINAL</h3>
+        <pre>npm start
+<span class="c"># two-pane wake terminal</span></pre>
+      </div>
+      <div>
+        <span class="no">03</span><h3>WAKE</h3>
+        <pre>pellet wake --cast-only
+<span class="c"># raw scrolling feed</span></pre>
+      </div>
+      <div>
+        <span class="no">04</span><h3>FLOW</h3>
+        <pre>pellet flow --top 15
+<span class="c"># ranked smart desk</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------- open source ---------------- -->
+  <section id="source">
+    <div class="rule"><i>06</i> OPEN SOURCE</div>
+    <div class="split wide-left">
+      <div>
+        <h2>READ THE CODE. RUN THE TERMINAL.</h2>
+        <p>
+          The repository holds the CLI, the providers, the walls, the pellet
+          export, the docs, thirty tests and this website. The site imports the
+          wall logic from the same file the terminal uses, so a verdict here and
+          a verdict there cannot drift apart.
+        </p>
+        <div class="chips" style="margin:20px 0">
+          <span class="chip">NODE 20+</span><span class="chip">MIT</span>
+          <span class="chip">CHAIN 4663</span><span class="chip">CLI-FIRST</span>
+          <span class="chip">NO WALLET CONNECT</span><span class="chip">30 TESTS</span>
+        </div>
+        <div class="btn-row">
+          <a class="btn primary" href="https://github.com/0xwast3/pellet">VIEW GITHUB ↗</a>
+          <a class="btn" href="docs.html">READ DOCS ↗</a>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span>HOW A WAKE BECOMES A ROW</span></div>
+        <div class="panel-body" style="padding:0">
+          <img src="assets/how-it-works.svg" alt="The PELLET pipeline: a tracked wallet pool and market discovery feed a candidate, the candidate passes five walls in order, and the result reaches the flow desk, the roost and the pellet export" style="width:100%;display:block">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="rule"><i>07</i> DOCS</div>
+    <div class="cards">
+      <a href="docs.html#quickstart"><i>01</i><b>QUICKSTART</b><span>clone → doctor → terminal</span></a>
+      <a href="docs.html#terminal"><i>02</i><b>TERMINAL</b><span>keys · stream · panes</span></a>
+      <a href="docs.html#strategy"><i>03</i><b>STRATEGY</b><span>SLEEP · EDGE · SIZE · DEPTH · PRICE</span></a>
+      <a href="docs.html#architecture"><i>04</i><b>ARCHITECTURE</b><span>providers · runtime · state</span></a>
+      <a href="docs.html#safety"><i>05</i><b>SAFETY</b><span>no keys · no signing</span></a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <img class="owl-mark" src="assets/avatar.png" alt="">
+    <div>
+      <div style="color:var(--bone)">PELLET</div>
+      <small>Whale wallets waking after months of silence, and where the money goes.</small>
+    </div>
+    <nav>
+      <a href="terminal.html">Terminal</a>
+      <a href="docs.html">Docs</a>
+      <a href="https://github.com/0xwast3/pellet">GitHub</a>
+      <a href="https://x.com/0xwast3">X</a>
+      <small>ROBINHOOD CHAIN · 4663</small>
+    </nav>
+  </div>
+</footer>
+
+<script type="module" src="js/site.js"></script>
+</body>
+</html>
