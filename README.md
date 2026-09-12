@@ -1,4 +1,4 @@
-[![PELLET — a wake terminal that catches whale wallets waking after months of silence](assets/pellet-banner.png)](assets/pellet-banner.png)
+[![PELLET — a wake terminal that catches whale wallets waking after months of silence](assets/banner.png)](assets/banner.png)
 
 # PELLET
 
