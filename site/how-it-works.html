@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PELLET — how it works</title>
+<meta name="description" content="How PELLET turns a silent wallet into a decided row: dormancy clock, five walls in order, the refusal that names itself, and the smart-flow desk.">
+<meta name="theme-color" content="#050703">
+<meta property="og:title" content="PELLET — how it works">
+<meta property="og:description" content="Whale wallets waking after months of silence, and where the money goes.">
+<meta property="og:image" content="assets/social-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/avatar.png">
+<link rel="preload" href="fonts/jetbrains-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body id="top" class="wide">
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="index.html"><span class="owl" id="owl">(o,o)</span><b>PELLET</b><span>HOW IT WORKS</span></a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="terminal.html">Terminal</a>
+      <a href="how-it-works.html" aria-current="page">How it works</a>
+      <a href="docs.html">Docs</a>
+      <a href="https://github.com/0xwast3/pellet">GitHub ↗</a>
+      <a class="x" href="https://x.com/0xWast3/status/2098716532494745912" rel="noopener">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.9 2H22l-7 8 8.2 12h-6.4l-5-7.3L5.9 22H2.8l7.5-8.6L2.4 2h6.6l4.5 6.7L18.9 2Zm-1.1 18h1.7L7.3 3.8H5.5L17.8 20Z"/></svg>
+        <span class="opt">Post</span>
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="rule" style="margin-top:30px"><i>//</i> HOW IT WORKS</div>
+  <h1 style="font-size:clamp(30px,5vw,58px)">FROM SILENCE<br>TO A <em>DECIDED ROW.</em></h1>
+  <p class="lede">
+    Four stages, no magic in any of them. Each one is a file in the repository
+    you can open and read.
+  </p>
+
+  <section>
+    <div class="rule"><i>01</i> THE CLOCK</div>
+    <div class="split wide-left">
+      <div>
+        <h2>ONE TIMESTAMP PER WALLET.</h2>
+        <p>
+          Dormancy is the cheapest signal in the business: the gap between now and
+          the last time an address did anything. No indexer, no heuristics, no
+          model. One subtraction.
+        </p>
+        <p>
+          That is why the whole product hangs off it. An active wallet gives you
+          a hundred entries a week and almost no information. A wallet that has
+          been silent for four hundred days gives you one, and
+          <strong>it cannot cheaply pretend to have done nothing.</strong>
+        </p>
+        <p>Forty-five days is the default threshold. It is a dial, not a truth:</p>
+        <pre><code>pellet rules --set sleepDays=90</code></pre>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span>DORMANCY</span><span class="tag" id="hiw-tag">ARMED</span></div>
+        <div class="panel-body" style="text-align:center;padding:26px 14px">
+          <div class="who" style="color:var(--dim);font-size:12px">tracked sleeper <b id="hiw-who" style="color:var(--bone)">—</b></div>
+          <div class="big" id="hiw-clock" style="font:500 clamp(21px,5vw,40px)/1.05 var(--mono);color:var(--lime);margin:10px 0 6px;font-variant-numeric:tabular-nums;white-space:nowrap">—</div>
+          <div style="color:var(--dim);font-size:11px;letter-spacing:.16em" id="hiw-cap">SILENT</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="rule"><i>02</i> THE WALLS</div>
+    <h2>FIVE QUESTIONS, ASKED IN ORDER.</h2>
+    <p>
+      When a sleeper moves, the runtime builds a candidate — wallet, token,
+      ticket — and pushes it through five walls. <strong>The first wall that
+      fails owns the refusal</strong>, so a verdict never arrives without its
+      reason.
+    </p>
+    <div class="steps" style="margin-top:24px;grid-template-columns:repeat(5,1fr)">
+      <div><span class="no">SLEEP</span><h3 style="color:var(--bone);margin-top:8px">&gt;= 45d</h3><p style="font-size:12px;margin:6px 0 0">Was it really silent, or just slow?</p></div>
+      <div><span class="no">EDGE</span><h3 style="color:var(--bone);margin-top:8px">DNA &gt;= 55</h3><p style="font-size:12px;margin:6px 0 0">Is the record worth reading at all?</p></div>
+      <div><span class="no">SIZE</span><h3 style="color:var(--bone);margin-top:8px">&gt;= 0.35x</h3><p style="font-size:12px;margin:6px 0 0">A real ticket for <em>this</em> wallet, not in absolute terms.</p></div>
+      <div><span class="no">DEPTH</span><h3 style="color:var(--bone);margin-top:8px">&lt;= 3.00%</h3><p style="font-size:12px;margin:6px 0 0">Can the pool absorb that ticket?</p></div>
+      <div><span class="no">PRICE</span><h3 style="color:var(--bone);margin-top:8px">&lt;= 900s</h3><p style="font-size:12px;margin:6px 0 0">Is there a fresh mark to read against?</p></div>
+    </div>
+    <p style="margin-top:22px">
+      Two rules the box never breaks. <strong>SLEEP is never silently passed</strong> —
+      an inflow from an already-awake wallet reports it as <code>N/A</code> rather
+      than pretending to be a wake. And <strong>unknown is not zero</strong> — if
+      liquidity cannot be read, DEPTH refuses with <code>UNKNOWN</code> instead of
+      quietly reading 0% and letting the candidate through.
+    </p>
+    <div class="btn-row">
+      <a class="btn primary" href="index.html#walls">TRY THE SIMULATOR ↗</a>
+      <a class="btn" href="https://github.com/0xwast3/pellet/blob/main/src/core/walls.mjs">READ walls.mjs ↗</a>
+    </div>
+  </section>
+
+  <section>
+    <div class="rule"><i>03</i> THE DESK</div>
+    <div class="split wide-right">
+      <div>
+        <h2>WHAT CLEARED, AGGREGATED.</h2>
+        <p>
+          Anything that clears the walls records flow against its token. Inside a
+          rolling window the desk keeps net USD, ticket count, average size, and
+          the set of <strong>distinct</strong> wallets involved.
+        </p>
+        <p>
+          That set is the guard. One wallet cycling a position eight times
+          produces a big number and means nothing, so a token does not rank until
+          at least two separate tracked wallets have touched it. Reductions
+          subtract, so a token can rank negative — a result, not a gap.
+        </p>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span>DESK · LIVE</span><span class="tag" id="hiw-desk-tag">—</span></div>
+        <div class="panel-body">
+          <table>
+            <thead><tr><th>TOKEN</th><th class="num">NET</th><th class="num">WALLETS</th><th>TREND</th></tr></thead>
+            <tbody id="hiw-desk"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="rule"><i>04</i> THE PELLET</div>
+    <h2>EVERYTHING COMES BACK READABLE.</h2>
+    <p>
+      An owl swallows its prey whole and coughs up a pellet: a dry record of
+      everything it ate, bones included. That is the export. One wallet, brought
+      back up whole — dormancy, record, every wake, and
+      <strong>every refusal it was ever given with the wall that caused it.</strong>
+    </p>
+    <pre style="max-width:640px"><code>pellet cough night_porter --format md --output porter.md</code></pre>
+    <p>
+      Fields the runtime could not observe are <code>null</code>, never
+      <code>0</code>. Synthetic rows carry the flag into the file, so an export
+      and a screenshot cannot disagree about where a number came from.
+    </p>
+  </section>
+
+  <section>
+    <div class="rule"><i>//</i> THE WHOLE PIPELINE</div>
+    <div class="panel">
+      <div class="panel-body" style="padding:0">
+        <img src="assets/how-it-works.svg" alt="The PELLET pipeline: a tracked wallet pool and market discovery feed a candidate, the candidate passes five walls in order, and the result reaches the flow desk, the roost and the pellet export" style="width:100%;display:block">
+      </div>
+    </div>
+    <div class="btn-row">
+      <a class="btn primary" href="terminal.html">OPEN THE TERMINAL ↗</a>
+      <a class="btn" href="docs.html">READ THE DOCS</a>
+      <a class="btn" href="https://github.com/0xwast3/pellet">GITHUB ↗</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img class="owl-mark" src="assets/avatar.png" alt="">
+    <div><div style="color:var(--bone)">PELLET</div><small>Whale wallets waking after months of silence, and where the money goes.</small></div>
+    <nav>
+      <a href="index.html">Home</a><a href="terminal.html">Terminal</a>
+      <a href="how-it-works.html">How it works</a><a href="docs.html">Docs</a>
+      <a href="https://github.com/0xwast3/pellet">GitHub</a>
+      <a href="https://x.com/0xWast3/status/2098716532494745912">X</a>
+      <small>ROBINHOOD CHAIN · 4663</small>
+    </nav>
+  </div>
+</footer>
+
+<script type="module">
+  import { createEngine, loadSeed, fmt } from './js/engine.js';
+
+  const owl = document.getElementById('owl');
+  let lid = false;
+  setInterval(() => { lid = !lid; owl.textContent = lid ? '(-,-)' : '(o,o)'; }, 2600);
+
+  const $ = (s) => document.querySelector(s);
+
+  (async () => {
+    let seed;
+    try { seed = await loadSeed('data/seed.json'); } catch { return; }
+    const eng = createEngine(seed);
+    for (let i = 0; i < 90; i += 1) eng.tick();
+
+    let target = null;
+    const arm = () => {
+      const pool = eng.sleepers(10);
+      target = pool[Math.floor(Math.random() * Math.min(5, pool.length))] || null;
+      if (target) { $('#hiw-who').textContent = '@' + target.handle; $('#hiw-cap').textContent = 'SILENT'; $('#hiw-tag').textContent = 'ARMED'; }
+    };
+    const tickClock = () => {
+      if (!target) return;
+      const ms = Date.now() - Date.parse(target.lastActive);
+      const d = Math.floor(ms / 86400000), r = ms % 86400000;
+      const p = (n) => String(n).padStart(2, '0');
+      $('#hiw-clock').textContent =
+        `${d}d ${p(Math.floor(r / 3600000))}:${p(Math.floor(r % 3600000 / 60000))}:${p(Math.floor(r % 60000 / 1000))}`;
+    };
+    const drawDesk = () => {
+      const rows = eng.desk(6);
+      $('#hiw-desk-tag').textContent = rows.length ? `${rows.length} RANKED` : 'BELOW FLOOR';
+      $('#hiw-desk').innerHTML = rows.map((x) => `<tr>
+        <td>$${x.symbol}</td>
+        <td class="num ${x.netUsd >= 0 ? 'pos' : 'neg'}">${fmt.usd(x.netUsd)}</td>
+        <td class="num">${x.wallets}</td>
+        <td class="${x.netUsd >= 0 ? 'pos' : 'neg'}">${fmt.spark(x.spark)}</td></tr>`).join('');
+    };
+
+    arm(); tickClock(); drawDesk();
+    setInterval(tickClock, 1000);
+    setInterval(() => { eng.tick(); drawDesk(); }, 1800);
+    setInterval(arm, 9000);
+  })();
+</script>
+</body>
+</html>

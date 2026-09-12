@@ -4,63 +4,96 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PELLET — web terminal</title>
-<meta name="description" content="The PELLET wake terminal in the browser. Same wall logic as the CLI: wake, flow, sleepers, wallet, cough, rules.">
+<meta name="description" content="The PELLET wake terminal in the browser. Live stream, wall inspector and a command pane running the same logic as the CLI.">
 <meta name="theme-color" content="#050703">
+<meta property="og:title" content="PELLET — web terminal">
+<meta property="og:description" content="Whale wallets waking after months of silence, and where the money goes.">
+<meta property="og:image" content="assets/social-card.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="assets/avatar.png">
 <link rel="preload" href="fonts/jetbrains-mono-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/style.css">
-<style>
-  .term { border: 1px solid var(--line); background: var(--panel); margin-top: 22px; }
-  .out { height: min(64vh, 620px); overflow-y: auto; padding: 14px; font-size: 12.5px; line-height: 1.62; }
-  .out .ln { white-space: pre-wrap; word-break: break-word; }
-  .out .ln.cmd { color: var(--bone); }
-  .out .ln.cmd b { color: var(--lime); font-weight: 400; }
-  .prompt { display: flex; align-items: center; gap: 9px; border-top: 1px solid var(--line); padding: 11px 14px; }
-  .prompt b { color: var(--lime); font-weight: 400; font-size: 12.5px; }
-  .prompt input { flex: 1; background: none; border: 0; color: var(--bone); font: inherit; font-size: 12.5px; outline: none; }
-  .prompt span { color: var(--dim); font-size: 11px; letter-spacing: .1em; }
-  .try { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
-  .try button { background: var(--raise); border: 1px solid var(--line); color: var(--dim); font: inherit; font-size: 11.5px; padding: 6px 11px; cursor: pointer; }
-  .try button:hover { border-color: var(--lime); color: var(--lime); }
-  .caret { display: inline-block; width: 7px; height: 14px; background: var(--lime); vertical-align: -2px; animation: blink 1.1s steps(2) infinite; }
-  @keyframes blink { 50% { opacity: 0; } }
-</style>
 </head>
-<body id="top">
+<body id="top" class="wide">
 
 <header class="nav">
   <div class="wrap">
     <a class="brand" href="index.html"><span class="owl" id="owl">(o,o)</span><b>PELLET</b><span>WEB TERMINAL</span></a>
     <nav>
       <a href="index.html">Home</a>
+      <a href="terminal.html" aria-current="page">Terminal</a>
+      <a href="how-it-works.html">How it works</a>
       <a href="docs.html">Docs</a>
       <a href="https://github.com/0xwast3/pellet">GitHub ↗</a>
+      <a class="x" href="https://x.com/0xWast3/status/2098716532494745912" rel="noopener">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.9 2H22l-7 8 8.2 12h-6.4l-5-7.3L5.9 22H2.8l7.5-8.6L2.4 2h6.6l4.5 6.7L18.9 2Zm-1.1 18h1.7L7.3 3.8H5.5L17.8 20Z"/></svg>
+        <span class="opt">Post</span>
+      </a>
     </nav>
   </div>
 </header>
 
 <main class="wrap">
-  <div class="rule" style="margin-top:34px"><i>//</i> PELLET WEB TERMINAL</div>
-  <p style="max-width:74ch">
-    The same wall logic as the CLI, running in this tab. If you have the
-    repository open locally with <code>pellet web</code>, this page reads that
-    runtime instead and drops the synthetic label.
+  <div class="rule" style="margin-top:30px"><i>//</i> PELLET WEB TERMINAL</div>
+  <p style="max-width:76ch">
+    The same wall logic as the CLI, running in this tab. Press
+    <strong>START</strong> and the stream runs. Click any decided row to read its
+    walls. Run a command from the rail and it opens in the side pane without
+    stopping the feed.
   </p>
 
-  <div class="term">
-    <div class="panel-head">
+  <div class="ws">
+    <div class="ws-bar">
+      <span class="lights"><i style="background:var(--bad)"></i><i style="background:var(--glow)"></i><i style="background:var(--lime)"></i></span>
       <span>pellet@rh:~</span>
+      <span class="grow"></span>
+      <span>WAKE <b id="k-wake" style="color:var(--bone)">0</b></span>
+      <span>CAST <b id="k-cast" style="color:var(--good)">0</b></span>
+      <span>PASS <b id="k-pass" style="color:var(--bad)">0</b></span>
       <span class="tag warn" id="mode">DETECTING…</span>
+      <button class="run" id="run" data-on="false">▶ START</button>
     </div>
-    <div class="out" id="out" tabindex="0"></div>
-    <div class="prompt">
+
+    <div class="ws-grid">
+      <aside class="rail" id="rail"></aside>
+
+      <section class="pane">
+        <div class="pane-head">
+          <span>STREAM</span>
+          <span class="grow"></span>
+          <button data-filter="ALL" aria-pressed="true">ALL</button>
+          <button data-filter="WAKE" aria-pressed="false">WAKE</button>
+          <button data-filter="CAST" aria-pressed="false">CAST</button>
+          <button data-filter="PASS" aria-pressed="false">PASS</button>
+        </div>
+        <div class="pane-body feed" id="feed" style="height:clamp(340px, 58vh, 640px)"></div>
+        <div class="ws-desk">
+          <div class="pane-head" style="border:0;padding:0 0 8px"><span>SMART FLOW · 60m WINDOW</span><span class="grow"></span><span id="desk-tag">—</span></div>
+          <table>
+            <thead><tr><th>TOKEN</th><th class="num">NET FLOW</th><th class="num">WALLETS</th><th class="num">AVG</th><th>TREND</th></tr></thead>
+            <tbody id="desk"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="pane side">
+        <div class="pane-head">
+          <button data-tab="inspect" aria-pressed="true">INSPECTOR</button>
+          <button data-tab="output" aria-pressed="false">OUTPUT</button>
+          <span class="grow"></span>
+          <button id="wipe">CLEAR</button>
+        </div>
+        <div class="pane-body pad" id="inspect" style="height:clamp(340px, 66vh, 760px)"></div>
+        <div class="pane-body out-log" id="output" hidden style="height:clamp(340px, 66vh, 760px)"></div>
+      </section>
+    </div>
+
+    <div class="ws-prompt">
       <b>$</b>
-      <input id="in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type help and press enter" aria-label="terminal input">
-      <span>↑↓ HISTORY</span>
+      <input id="in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type a command — help lists them" aria-label="terminal input">
+      <kbd>↑↓</kbd>
     </div>
   </div>
-
-  <div class="try" id="try"></div>
 </main>
 
 <footer>
@@ -68,8 +101,9 @@
     <img class="owl-mark" src="assets/avatar.png" alt="">
     <div><div style="color:var(--bone)">PELLET</div><small>Whale wallets waking after months of silence. Read-only: no wallet connect, no signing.</small></div>
     <nav>
-      <a href="index.html">Home</a><a href="docs.html">Docs</a>
+      <a href="index.html">Home</a><a href="how-it-works.html">How it works</a><a href="docs.html">Docs</a>
       <a href="https://github.com/0xwast3/pellet">GitHub</a>
+      <a href="https://x.com/0xWast3/status/2098716532494745912">X</a>
       <small>ROBINHOOD CHAIN · 4663</small>
     </nav>
   </div>

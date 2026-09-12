@@ -22,6 +22,42 @@ const owl = $('#owl');
 let lid = false;
 setInterval(() => { lid = !lid; owl.textContent = lid ? '(-,-)' : '(o,o)'; }, 2600);
 
+/* ---------- mascot bands ---------- */
+const MQ = [
+  ['WAKE DETECTION', 'five walls, in order'],
+  ['SMART FLOW', 'net USD, distinct wallets'],
+  ['THE PELLET', 'nothing is digested'],
+  ['ROBINHOOD CHAIN', 'chain 4663'],
+  ['NO WALLET CONNECT', 'read-only, always'],
+  ['CLI-FIRST', 'the terminal is the product']
+];
+const mqItem = ([a, b]) =>
+  `<span class="marquee-item"><img src="assets/avatar.png" alt=""><em>${a}</em><b>·</b>${b}</span>`;
+
+for (const [id, rows] of [['#mq1', MQ], ['#mq2', [...MQ].reverse()]]) {
+  const track = $(id);
+  if (track) track.innerHTML = (rows.map(mqItem).join('')).repeat(2);
+}
+
+/* a loose flock drifting under the nav — decoration, so it is aria-hidden
+   and never rendered when the visitor asked for reduced motion */
+const flock = $('#flock');
+if (flock && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  const N = window.innerWidth < 700 ? 5 : 9;
+  const BAND = 132;
+  flock.innerHTML = Array.from({ length: N }, (_, i) => {
+    const size = 30 + Math.round(Math.random() * 26);
+    const top = Math.round(((i * 0.618) % 1) * (BAND - size - 10)) + 5;
+    const dur = 19 + Math.random() * 20;
+    // spread the head start evenly so the flock never bunches at one edge
+    const delay = -(dur * ((i + Math.random() * 0.5) / N));
+    return `<img src="assets/avatar.png" alt="" width="${size}" height="${size}"
+      style="top:${top}px;width:${size}px;height:${size}px;
+      animation-duration:${dur.toFixed(1)}s;animation-delay:${delay.toFixed(1)}s;
+      opacity:${(0.4 + Math.random() * 0.35).toFixed(2)}">`;
+  }).join('');
+}
+
 /* ---------- wall simulator: the real evaluate(), not a mock ---------- */
 const sim = {
   kind: 'WAKE',
@@ -136,7 +172,7 @@ const boot = async () => {
 
   function paint(events) {
     for (const e of events) {
-      if (e.type === 'MOVE' && Math.random() < 0.55) continue;
+      if ((e.type === 'MOVE' || e.type === 'CAST') && Math.random() < 0.7) continue;
       const row = document.createElement('div');
       row.className = 'row new';
       row.innerHTML = `<span class="t">${fmt.clock(e.at)}</span>` +

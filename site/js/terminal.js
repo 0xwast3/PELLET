@@ -1,160 +1,179 @@
 import { createEngine, loadSeed, fmt, DEFAULT_RULES } from './engine.js';
 
-const out = document.getElementById('out');
-const input = document.getElementById('in');
-const modeTag = document.getElementById('mode');
-const owl = document.getElementById('owl');
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
+const rules = DEFAULT_RULES;
 
+const feed = $('#feed');
+const output = $('#output');
+const inspect = $('#inspect');
+const input = $('#in');
+const runBtn = $('#run');
+
+let engine = null;
+let live = false;
+let timer = null;
+let filter = 'ALL';
+let selected = null;
+const history = [];
+let hIndex = -1;
+const MAXROWS = 160;
+
+/* the owl blinks in the header exactly as it does in the CLI */
+const owl = $('#owl');
 let lid = false;
 setInterval(() => { lid = !lid; owl.textContent = lid ? '(-,-)' : '(o,o)'; }, 2600);
 
-const rules = DEFAULT_RULES;
-const history = [];
-let hIndex = -1;
-let engine = null;
-let live = false;      // a local `pellet web` runtime answered
-let streaming = null;  // interval handle for `start`
-
-/* ---------- output helpers ---------- */
-const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+/* ---------- output pane helpers ---------- */
+const esc = (s) => String(s).replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+const c = (text, cls) => `<span class="${cls}">${esc(text)}</span>`;
+const pad = (s, n) => String(s).padEnd(n);
+const rpad = (s, n) => String(s).padStart(n);
 
 function line(html = '', cls = '') {
   const el = document.createElement('div');
   el.className = `ln ${cls}`;
   el.innerHTML = html;
-  out.appendChild(el);
-  out.scrollTop = out.scrollHeight;
-  return el;
+  output.appendChild(el);
+  output.scrollTop = output.scrollHeight;
 }
-const c = (text, cls) => `<span class="${cls}">${esc(text)}</span>`;
-const pad = (s, n) => String(s).padEnd(n);
-const rpad = (s, n) => String(s).padStart(n);
+
+function showTab(name) {
+  $$('.pane-head [data-tab]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tab === name)));
+  inspect.hidden = name !== 'inspect';
+  output.hidden = name !== 'output';
+}
 
 /* ---------- commands ---------- */
+const RAIL = [
+  ['READ', ['help', 'rules', 'doctor']],
+  ['DATA', ['sleepers', 'flow', 'wake']],
+  ['EXPORT', ['cough', 'clear']]
+];
+
 const COMMANDS = {
   help() {
     line();
-    line(c('PELLET', 'WAKE') + '  wake terminal · type any command below');
+    line(c('PELLET', 'WAKE') + '  ' + c('wake terminal · type a command or use the rail', 'dim'));
     line();
-    const rows = [
-      ['start', 'live wake stream in this pane (any key stops it)'],
-      ['wake', 'the last decisions, refusals included'],
-      ['flow', 'ranked smart-money desk for the window'],
-      ['sleepers', 'tracked wallets still silent, longest first'],
+    for (const [k, v] of [
+      ['rules', 'the five walls and their current thresholds'],
+      ['sleepers [n]', 'tracked wallets still silent, longest first'],
+      ['flow [n]', 'ranked smart-money desk for the window'],
+      ['wake [--cast-only]', 'the last decisions, refusals included'],
       ['wallet <handle>', 'one wallet read out'],
-      ['cough <handle>', 'the pellet — full record for one wallet'],
-      ['rules', 'the decision box'],
+      ['cough [handle]', 'the pellet — full record for one wallet'],
       ['doctor', 'what this page is connected to'],
-      ['clear', 'wipe the pane']
-    ];
-    for (const [k, v] of rows) line('  ' + c(pad(k, 18), 'WAKE') + c(v, 'dim'));
+      ['clear', 'wipe this pane']
+    ]) line('  ' + c(pad(k, 20), 'WAKE') + c(v, 'dim'));
+    line();
+    line(c('  START runs the stream. Click a decided row to inspect its walls.', 'dim'));
     line();
   },
 
-  clear() { out.innerHTML = ''; },
+  clear() { output.innerHTML = ''; },
 
   doctor() {
     line();
     line(c('pellet doctor', 'WAKE'));
     line();
-    line('  ' + c(pad('runtime', 12), 'dim') + (live ? c('local · pellet web', 'pos') : c('in-browser engine', 'FOUND')));
-    line('  ' + c(pad('data', 12), 'dim') + (live ? c('live reads', 'pos') : c('bootstrap set · synthetic', 'neg')));
-    line('  ' + c(pad('wallets', 12), 'dim') + engine.state.wallets.size + c('  (grows while open)', 'dim'));
-    line('  ' + c(pad('tokens', 12), 'dim') + engine.state.universe.size);
-    line('  ' + c(pad('keys', 12), 'dim') + c('none · this page cannot sign anything', 'dim'));
+    const kv = (k, v) => line('  ' + c(pad(k, 12), 'dim') + v);
+    kv('runtime', live ? c('local · pellet web', 'pos') : c('in-browser engine', 'FOUND'));
+    kv('data', live ? c('live reads', 'pos') : c('bootstrap set · synthetic', 'neg'));
+    kv('wallets', engine.state.wallets.size + c('  (grows while running)', 'dim'));
+    kv('tokens', engine.state.universe.size);
+    kv('stream', timer ? c('running', 'pos') : c('stopped', 'dim'));
+    kv('keys', c('none · this page cannot sign anything', 'dim'));
     line();
-    if (!live) {
-      line(c('  Run the repo locally with `pellet web` and reload to read live state.', 'dim'));
-      line();
-    }
+    if (!live) { line(c('  Run the repo with `pellet web` and reload to read live state.', 'dim')); line(); }
   },
 
   rules() {
     line();
     line(c('PELLET WALLS', 'WAKE'));
     line();
-    const sheet = [
+    for (const [n, w, q] of [
       ['SLEEP', `>= ${rules.sleepDays}d`, 'was it really silent?'],
       ['EDGE', `DNA >= ${rules.minDna}`, 'is the record worth reading?'],
       ['SIZE', `>= ${rules.sizeRatio}x median`, 'a real ticket for this wallet?'],
       ['DEPTH', `<= ${(rules.maxImpact * 100).toFixed(2)}%`, 'is the pool deep enough?'],
       ['PRICE', `<= ${rules.maxMarkAgeSec}s`, 'is the mark fresh?']
-    ];
-    for (const [n, w, q] of sheet) line('  ' + c(pad(n, 8), 'FOUND') + c(pad(w, 20), 'WAKE') + c(q, 'dim'));
+    ]) line('  ' + c(pad(n, 8), 'FOUND') + c(pad(w, 20), 'WAKE') + c(q, 'dim'));
     line();
-    line(c(`  evaluated in order · the first failure owns the refusal`, 'dim'));
+    line(c('  evaluated in order · the first failure owns the refusal', 'dim'));
+    line(c('  unknown inputs refuse with UNKNOWN, they never become zero', 'dim'));
     line();
   },
 
   sleepers(arg) {
-    const n = Number(arg) || 12;
     line();
     line(c('SLEEPERS', 'WAKE') + c(`  silent >= ${rules.sleepDays}d`, 'dim'));
     line();
     line(c('  ' + pad('WALLET', 20) + rpad('ASLEEP', 8) + rpad('DNA', 6) + rpad('WR', 7) + rpad('MEDIAN', 12), 'dim'));
-    for (const w of engine.sleepers(n)) {
-      line('  ' + c(pad('@' + w.handle, 20), 'FOUND') +
-        c(rpad(w.days.toFixed(0) + 'd', 8), 'WAKE') +
-        rpad(w.dna, 6) + rpad(((w.winRate || 0) * 100).toFixed(0) + '%', 7) +
-        rpad(w.medianTicketEth + ' ETH', 12));
+    for (const w of engine.sleepers(Number(arg) || 12)) {
+      line('  ' + c(pad('@' + w.handle, 20), 'FOUND') + c(rpad(w.days.toFixed(0) + 'd', 8), 'WAKE') +
+        rpad(w.dna, 6) + rpad(((w.winRate || 0) * 100).toFixed(0) + '%', 7) + rpad(w.medianTicketEth + ' ETH', 12));
     }
     line();
   },
 
   flow(arg) {
-    const n = Number(arg) || 10;
-    const rows = engine.desk(n);
+    const rows = engine.desk(Number(arg) || 10);
     line();
     line(c('SMART FLOW', 'WAKE') + c(`  ${rules.flowWindowMin}m window · min ${rules.minFlowWallets} wallets`, 'dim'));
     line();
-    if (!rows.length) { line(c('  nothing has cleared the wallet floor yet — let it run', 'dim')); line(); return; }
+    if (!rows.length) { line(c('  nothing has cleared the wallet floor yet — press START', 'dim')); line(); return; }
     line(c('  ' + pad('TOKEN', 12) + rpad('NET FLOW', 12) + rpad('WALLETS', 9) + rpad('AVG', 11) + '  TREND', 'dim'));
     for (const r of rows) {
-      line('  ' + c(pad('$' + r.symbol, 12), 'FOUND') +
-        c(rpad(fmt.usd(r.netUsd), 12), r.netUsd >= 0 ? 'pos' : 'neg') +
-        rpad(r.wallets, 9) + c(rpad(fmt.usd(r.avgUsd), 11), 'dim') +
-        '  ' + c(fmt.spark(r.spark), r.netUsd >= 0 ? 'pos' : 'neg'));
+      line('  ' + c(pad('$' + r.symbol, 12), 'FOUND') + c(rpad(fmt.usd(r.netUsd), 12), r.netUsd >= 0 ? 'pos' : 'neg') +
+        rpad(r.wallets, 9) + c(rpad(fmt.usd(r.avgUsd), 11), 'dim') + '  ' +
+        c(fmt.spark(r.spark), r.netUsd >= 0 ? 'pos' : 'neg'));
     }
     line();
   },
 
   wake(arg) {
     const castOnly = arg === '--cast-only';
-    const rows = engine.state.events.filter((e) => e.candidate && (!castOnly || e.candidate.decision.cast)).slice(0, 14);
+    const rows = engine.state.events
+      .filter((e) => e.candidate && (!castOnly || e.candidate.decision.cast)).slice(0, 16);
     line();
     line(c('WAKE FEED', 'WAKE') + c(castOnly ? '  cast only' : '  refusals included', 'dim'));
     line();
-    for (const e of rows.reverse()) printDecision(e);
+    if (!rows.length) { line(c('  no decisions yet — press START', 'dim')); line(); return; }
+    for (const e of rows.reverse()) {
+      const d = e.candidate.decision;
+      line('  ' + c(fmt.clock(e.at) + ' ', 'dim') + c(pad(e.type, 7), e.type) +
+        c(pad('@' + e.handle, 18), 'FOUND') + c(pad('$' + e.symbol, 11), 'dim') +
+        c(pad(d.cast ? 'CAST' : 'PASS', 6), d.cast ? 'pos' : 'neg'));
+      if (!d.cast) line('          ' + c('└ ' + d.reason, 'dim'));
+    }
     line();
   },
 
   wallet(handle) {
-    if (!handle) return fail('usage: wallet <handle>');
+    if (!handle) return fail('usage: wallet <handle> · try sleepers first');
     const w = engine.state.wallets.get(handle.replace(/^@/, ''));
-    if (!w) return fail(`unknown wallet "${handle}" · try: sleepers`);
+    if (!w) return fail(`unknown wallet "${handle}"`);
     const p = engine.cough(w.handle);
     line();
     line(c('@' + w.handle, 'WAKE') + c('  ' + w.address, 'dim'));
-    line(c('  ' + '─'.repeat(58), 'dim'));
     line('  ' + c('dna ', 'dim') + w.dna + c('   trades ', 'dim') + w.trades +
-      c('   win rate ', 'dim') + ((w.winRate || 0) * 100).toFixed(0) + '%' +
+      c('   wr ', 'dim') + ((w.winRate || 0) * 100).toFixed(0) + '%' +
       c('   median ', 'dim') + w.medianTicketEth + ' ETH');
     line('  ' + c('realized ', 'dim') + w.realizedEth + ' ETH' +
-      c('   dormancy ', 'dim') + p.dormancyDays.toFixed(1) + 'd' +
-      c('   sleeping ', 'dim') + (p.dormancyDays >= rules.sleepDays ? 'yes' : 'no'));
+      c('   dormancy ', 'dim') + p.dormancyDays.toFixed(1) + 'd');
     line();
-    line('  ' + c('observed  ', 'dim') + `${p.observed.events} events · ${p.observed.wakes} wakes · ` +
+    line('  ' + c('observed  ', 'dim') + `${p.observed.events} events · ` +
       c(p.observed.cast + ' cast', 'pos') + ' · ' + c(p.observed.refused + ' refused', 'neg'));
     const by = Object.entries(p.observed.refusedBy);
     if (by.length) line('  ' + c('refused by  ', 'dim') + by.map(([k, v]) => `${k}×${v}`).join('  '));
-    line('  ' + c('touched  ', 'dim') + ((w.touched || []).map((s) => '$' + s).join(' ') || '—'));
     line();
   },
 
   cough(handle) {
-    if (!handle) return fail('usage: cough <handle>');
-    const p = engine.cough(handle.replace(/^@/, ''));
-    if (!p) return fail(`unknown wallet "${handle}"`);
+    const target = handle ? handle.replace(/^@/, '') : engine.sleepers(1)[0]?.handle;
+    const p = target ? engine.cough(target) : null;
+    if (!p) return fail('usage: cough <handle>');
     const w = p.wallet;
     line();
     line(c('# PELLET · ' + w.handle, 'WAKE'));
@@ -162,8 +181,7 @@ const COMMANDS = {
     line();
     const kv = (k, v) => line('  ' + c(pad(k, 16), 'dim') + v);
     kv('address', w.address);
-    kv('dna', w.dna);
-    kv('trades', w.trades);
+    kv('dna', w.dna); kv('trades', w.trades);
     kv('win rate', ((w.winRate || 0) * 100).toFixed(1) + '%');
     kv('median ticket', w.medianTicketEth + ' ETH');
     kv('realized', w.realizedEth + ' ETH');
@@ -172,56 +190,134 @@ const COMMANDS = {
     kv('sleeping', p.dormancyDays >= rules.sleepDays ? 'yes' : 'no');
     line();
     line(c('  ## trail', 'WAKE'));
-    if (!p.trail.length) line(c('  nothing observed yet — run start for a while', 'dim'));
-    for (const e of p.trail) printDecision(e, '  ');
+    if (!p.trail.length) line(c('  nothing observed yet — press START and let it run', 'dim'));
+    for (const e of p.trail) {
+      const d = e.candidate?.decision;
+      line('  ' + c(fmt.clock(e.at) + ' ', 'dim') + c(pad(e.type, 7), e.type) +
+        c(pad('$' + (e.symbol || '—'), 11), 'dim') +
+        (d ? c(d.cast ? 'CAST' : 'PASS', d.cast ? 'pos' : 'neg') : ''));
+    }
     line();
-    line(c('  Rows are synthetic on a static host. The CLI writes the same', 'dim'));
-    line(c('  record to Markdown or JSON with: pellet cough ' + w.handle, 'dim'));
+    line(c('  The CLI writes this to Markdown or JSON:', 'dim'));
+    line(c('  pellet cough ' + w.handle + ' --format md', 'WAKE'));
     line();
-  },
-
-  start() {
-    if (streaming) return;
-    line();
-    line(c('streaming · press any key to stop', 'dim'));
-    streaming = setInterval(() => {
-      for (const e of engine.tick()) {
-        if (e.type === 'MOVE' && Math.random() < 0.6) continue;
-        if (e.candidate) printDecision(e);
-        else line('  ' + c(fmt.clock(e.at) + ' ', 'dim') + c(pad(e.type, 7), e.type) +
-          c(pad(e.symbol ? '$' + e.symbol : '@' + (e.handle || ''), 18), 'FOUND') + c(e.line, 'dim'));
-      }
-    }, 900);
   }
 };
 
-function printDecision(e, indent = '  ') {
-  const d = e.candidate.decision;
-  line(indent + c(fmt.clock(e.at) + ' ', 'dim') + c(pad(e.type, 7), e.type) +
-    c(pad('@' + e.handle, 18), 'FOUND') + c(pad('$' + e.symbol, 11), 'dim') +
-    c(pad(d.cast ? 'CAST' : 'PASS', 6), d.cast ? 'pos' : 'neg') +
-    c(e.line.replace(/ · (CAST|PASS)$/, ''), 'dim'));
-  if (!d.cast) line(indent + '        ' + c('└ ' + d.reason, 'dim'));
-}
-
 function fail(msg) { line('  ' + c(msg, 'neg')); line(); }
 
-function stopStream() {
-  if (!streaming) return false;
-  clearInterval(streaming);
-  streaming = null;
-  line(c('  stopped', 'dim'));
-  line();
-  return true;
+/* ---------- stream ---------- */
+const matches = (e) => {
+  if (filter === 'ALL') return true;
+  if (filter === 'WAKE') return e.type === 'WAKE';
+  if (!e.candidate) return false;
+  return filter === 'CAST' ? e.candidate.decision.cast : !e.candidate.decision.cast;
+};
+
+function rowNode(e) {
+  const row = document.createElement('div');
+  row.className = 'row new' + (e.candidate ? ' pickable' : '');
+  row.dataset.id = e.id;
+  row.setAttribute('aria-selected', String(selected === e.id));
+  const verdict = e.candidate ? (e.candidate.decision.cast ? 'CAST' : 'PASS') : '';
+  row.innerHTML =
+    `<span class="t">${fmt.clock(e.at)}</span>` +
+    `<span class="${e.type}">${e.type}</span>` +
+    `<span>${e.handle ? '@' + e.handle : ''}</span>` +
+    `<span class="dim">${e.symbol ? '$' + e.symbol : ''}</span>` +
+    `<span class="${verdict === 'CAST' ? 'pos' : verdict === 'PASS' ? 'neg' : 'dim'}">${
+      esc(e.line.replace(/ · (CAST|PASS)$/, ''))}</span>`;
+  if (e.candidate) row.addEventListener('click', () => { selected = e.id; paintSelection(); drawInspector(e); showTab('inspect'); });
+  return row;
+}
+
+function paintSelection() {
+  $$('#feed .row').forEach((r) => r.setAttribute('aria-selected', String(Number(r.dataset.id) === selected)));
+}
+
+const ICON = { PASS: '✓', FAIL: '✗', UNKNOWN: '?', 'N/A': '·' };
+
+function drawInspector(e) {
+  if (!e) {
+    inspect.innerHTML = `<p class="notice" style="margin:0">Press <strong>START</strong>, then click any
+      <span class="WAKE">WAKE</span> or <span class="INFLOW">INFLOW</span> row to read the five walls
+      that decided it.</p>`;
+    return;
+  }
+  const d = e.candidate.decision;
+  const cd = e.candidate;
+  inspect.innerHTML = `
+    <div class="cand" style="margin:-14px -14px 14px">
+      <span>${e.type.toLowerCase()} <b>@${e.handle}</b></span>
+      <span>on <b>$${e.symbol}</b></span>
+      <span>${fmt.clock(e.at)}${e.synthetic ? ' · synthetic' : ''}</span>
+    </div>
+    ${d.walls.map((w) => `<div class="wl">
+      <span class="s ${w.state === 'N/A' ? 'NA' : w.state}">${ICON[w.state]}</span>
+      <span class="n">${w.name}</span><span class="v">${w.shown}</span><span class="dim">${w.want}</span>
+    </div>`).join('')}
+    <div class="verdict ${d.cast ? 'cast' : 'pass'}">${d.cast ? 'CAST' : 'PASS'}<small>${esc(d.reason)}</small></div>
+    <h4 style="margin:18px 0 8px;font:400 11px/1 var(--mono);color:var(--lime);letter-spacing:.16em">TICKET</h4>
+    <div class="receipt">
+      <div class="kv"><span>size</span><b>${cd.ticketEth} ETH</b></div>
+      <div class="kv"><span>in usd</span><b>${fmt.usd(cd.ticketUsd)}</b></div>
+      <div class="kv"><span>wallet median</span><b>${cd.wallet.medianTicketEth} ETH</b></div>
+      <div class="kv"><span>dna</span><b>${cd.wallet.dna}</b></div>
+      <div class="kv"><span>liquidity</span><b>${fmt.usd(cd.token.liquidityUsd)}</b></div>
+    </div>`;
+}
+
+function pushEvents(events) {
+  for (const e of events) {
+    // keep the inspector on the newest decision until the visitor picks one
+    if (e.candidate && selected === null) drawInspector(e);
+    if ((e.type === 'MOVE' || e.type === 'CAST') && Math.random() < 0.82) continue;
+    if (!matches(e)) continue;
+    feed.prepend(rowNode(e));
+    while (feed.children.length > MAXROWS) feed.lastChild.remove();
+  }
+  const k = engine.state.counters;
+  $('#k-wake').textContent = k.wake;
+  $('#k-cast').textContent = k.cast;
+  $('#k-pass').textContent = k.passed;
+}
+
+function repaintFeed() {
+  feed.innerHTML = '';
+  const quiet = engine.state.events
+    .filter((e) => matches(e) && !((e.type === 'MOVE' || e.type === 'CAST') && Math.random() < 0.82));
+  for (const e of quiet.slice(0, MAXROWS).reverse()) feed.prepend(rowNode(e));
+}
+
+function drawDesk() {
+  const rows = engine.desk(6);
+  $('#desk-tag').textContent = rows.length ? `${rows.length} RANKED` : 'BELOW FLOOR';
+  $('#desk').innerHTML = rows.length ? rows.map((r) => `<tr>
+      <td>$${r.symbol}</td>
+      <td class="num ${r.netUsd >= 0 ? 'pos' : 'neg'}">${fmt.usd(r.netUsd)}</td>
+      <td class="num">${r.wallets}</td>
+      <td class="num dim">${fmt.usd(r.avgUsd)}</td>
+      <td class="${r.netUsd >= 0 ? 'pos' : 'neg'}">${fmt.spark(r.spark)}</td></tr>`).join('')
+    : `<tr><td colspan="5" class="dim">No token has cleared ${rules.minFlowWallets} distinct wallets yet.</td></tr>`;
+}
+
+function setRunning(on) {
+  if (on && !timer) {
+    timer = setInterval(() => { pushEvents(engine.tick()); drawDesk(); }, 850);
+  } else if (!on && timer) {
+    clearInterval(timer); timer = null;
+  }
+  runBtn.dataset.on = String(Boolean(timer));
+  runBtn.textContent = timer ? '❚❚ PAUSE' : '▶ START';
 }
 
 /* ---------- input ---------- */
 function run(raw) {
   const text = raw.trim();
-  line(`<b>$</b> ${esc(text)}`, 'cmd');
   if (!text) return;
-  history.unshift(text);
-  hIndex = -1;
+  showTab('output');
+  line(`<b>$</b> ${esc(text)}`, 'cmd');
+  history.unshift(text); hIndex = -1;
   const [name, ...rest] = text.split(/\s+/);
   const fn = COMMANDS[name.toLowerCase()];
   if (!fn) return fail(`unknown command "${name}" · type help`);
@@ -229,23 +325,32 @@ function run(raw) {
 }
 
 input.addEventListener('keydown', (ev) => {
-  if (stopStream() && ev.key !== 'Enter') return;
   if (ev.key === 'Enter') { run(input.value); input.value = ''; }
-  else if (ev.key === 'ArrowUp') {
-    ev.preventDefault();
-    if (hIndex < history.length - 1) input.value = history[++hIndex];
-  } else if (ev.key === 'ArrowDown') {
-    ev.preventDefault();
-    input.value = hIndex > 0 ? history[--hIndex] : (hIndex = -1, '');
-  }
+  else if (ev.key === 'ArrowUp') { ev.preventDefault(); if (hIndex < history.length - 1) input.value = history[++hIndex]; }
+  else if (ev.key === 'ArrowDown') { ev.preventDefault(); input.value = hIndex > 0 ? history[--hIndex] : (hIndex = -1, ''); }
 });
-out.addEventListener('click', () => input.focus());
 
-/* ---------- shortcut chips ---------- */
-const TRY = ['help', 'start', 'sleepers', 'flow', 'wake --cast-only', 'rules', 'doctor'];
-document.getElementById('try').innerHTML = TRY.map((t) => `<button>${t}</button>`).join('');
-document.querySelectorAll('#try button').forEach((b) => b.addEventListener('click', () => {
-  stopStream(); input.focus(); run(b.textContent);
+runBtn.addEventListener('click', () => setRunning(!timer));
+$('#wipe').addEventListener('click', () => { output.innerHTML = ''; showTab('output'); });
+$$('.pane-head [data-tab]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+$$('.pane-head [data-filter]').forEach((b) => b.addEventListener('click', () => {
+  filter = b.dataset.filter;
+  $$('.pane-head [data-filter]').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+  repaintFeed();
+}));
+
+/* keyboard: space toggles the stream unless you are typing */
+document.addEventListener('keydown', (ev) => {
+  if (ev.target === input) return;
+  if (ev.code === 'Space') { ev.preventDefault(); setRunning(!timer); }
+});
+
+/* ---------- rail ---------- */
+$('#rail').innerHTML = RAIL.map(([group, items]) => `<h4>${group}</h4>` +
+  items.map((cmd) => `<button data-cmd="${cmd}"><i>&gt;</i> ${cmd}</button>`).join('')).join('');
+$$('#rail button').forEach((b) => b.addEventListener('click', () => {
+  $$('#rail button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+  run(b.dataset.cmd);
 }));
 
 /* ---------- boot ---------- */
@@ -253,32 +358,27 @@ document.querySelectorAll('#try button').forEach((b) => b.addEventListener('clic
   let seed;
   try { seed = await loadSeed(); }
   catch {
-    modeTag.textContent = 'SEED UNREACHABLE';
+    $('#mode').textContent = 'SEED UNREACHABLE';
     line(c('  Could not load the bootstrap set. Reload, or clone the repo and run npm start.', 'neg'));
     return;
   }
 
   engine = createEngine(seed);
 
-  // if a local `pellet web` runtime is answering, say so
   try {
     const res = await fetch('api/state', { cache: 'no-store' });
     if (res.ok) { await res.json(); live = true; }
   } catch { /* static host — expected */ }
 
-  modeTag.textContent = live ? 'LOCAL RUNTIME' : 'SYNTHETIC';
-  modeTag.className = live ? 'tag' : 'tag warn';
+  $('#mode').textContent = live ? 'LOCAL RUNTIME' : 'SYNTHETIC';
+  $('#mode').className = live ? 'tag' : 'tag warn';
 
-  for (let i = 0; i < 45; i += 1) engine.tick();
+  for (let i = 0; i < 55; i += 1) engine.tick();
+  repaintFeed(); drawDesk();
+  drawInspector(engine.state.events.find((e) => e.candidate) || null);
 
-  line(c('PELLET', 'WAKE') + c('  wake terminal · Robinhood Chain 4663', 'dim'));
-  line(c(live ? '  reading the local runtime on this machine'
-    : '  in-browser engine · bootstrap set · every row synthetic', 'dim'));
-  line();
   COMMANDS.help();
-  COMMANDS.sleepers(6);
-  line(c('  Try ', 'dim') + c('start', 'WAKE') + c(' to watch it run, or ', 'dim') +
-    c('cough <handle>', 'WAKE') + c(' to read one wallet. ', 'dim') + '<span class="caret"></span>');
-  line();
-  input.focus();
+  line(c('  ', 'dim') + '<span class="caret"></span>');
+
+  setRunning(true);
 })();

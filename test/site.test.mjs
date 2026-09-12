@@ -8,8 +8,8 @@ const site = (p) => join(ROOT, 'site', p);
 const read = (p) => readFileSync(site(p), 'utf8');
 
 test('the site ships the pages it links to', () => {
-  for (const p of ['index.html', 'terminal.html', 'docs.html', 'css/style.css',
-    'js/engine.js', 'js/site.js', 'js/terminal.js']) {
+  for (const p of ['index.html', 'terminal.html', 'docs.html', 'how-it-works.html',
+    'css/style.css', 'js/engine.js', 'js/site.js', 'js/terminal.js']) {
     assert.ok(existsSync(site(p)), `missing ${p}`);
   }
 });
@@ -28,7 +28,7 @@ test('the generated bootstrap set matches the source', () => {
 });
 
 test('nothing on the site calls out to a third party', () => {
-  for (const page of ['index.html', 'terminal.html', 'docs.html']) {
+  for (const page of ['index.html', 'terminal.html', 'docs.html', 'how-it-works.html']) {
     const html = read(page);
     for (const host of ['fonts.googleapis.com', 'fonts.gstatic.com', 'cdn.jsdelivr.net', 'unpkg.com', 'googletagmanager']) {
       assert.ok(!html.includes(host), `${page} still references ${host}`);
@@ -42,6 +42,24 @@ test('the fonts are self-hosted with their licences', () => {
     assert.ok(existsSync(site(f)), `missing ${f}`);
   }
   assert.match(read('css/style.css'), /@font-face/);
+});
+
+test('every page carries the nav links it promises', () => {
+  for (const page of ['index.html', 'terminal.html', 'docs.html', 'how-it-works.html']) {
+    const html = read(page);
+    assert.match(html, /how-it-works\.html/, `${page} does not link How it works`);
+    assert.match(html, /x\.com\/0xWast3\/status\//, `${page} does not link the X post`);
+    assert.match(html, /github\.com\/0xwast3\/pellet/, `${page} does not link GitHub`);
+  }
+});
+
+test('decoration is hidden from assistive tech and respects reduced motion', () => {
+  const html = read('index.html');
+  assert.match(html, /class="flock"[^>]*aria-hidden="true"/);
+  assert.match(html, /class="marquee"[^>]*aria-hidden="true"/);
+  const css = read('css/style.css');
+  assert.match(css, /prefers-reduced-motion[\s\S]*?\.marquee-track \{ animation: none/);
+  assert.match(css, /prefers-reduced-motion: reduce\) \{ \.flock \{ display: none/);
 });
 
 test('every page states that nothing here signs anything', () => {
