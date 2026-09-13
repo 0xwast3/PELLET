@@ -39,23 +39,29 @@ for (const [id, rows] of [['#mq1', MQ], ['#mq2', [...MQ].reverse()]]) {
   if (track) track.innerHTML = (rows.map(mqItem).join('')).repeat(2);
 }
 
-/* a loose flock drifting under the nav — decoration, so it is aria-hidden
-   and never rendered when the visitor asked for reduced motion */
+/* A flock drifting behind the whole page. Background texture, so it is
+   aria-hidden, sits under the vignette, and is skipped entirely when the
+   visitor has asked for reduced motion. */
 const flock = $('#flock');
 if (flock && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-  const N = window.innerWidth < 700 ? 5 : 9;
-  const BAND = 132;
-  flock.innerHTML = Array.from({ length: N }, (_, i) => {
-    const size = 30 + Math.round(Math.random() * 26);
-    const top = Math.round(((i * 0.618) % 1) * (BAND - size - 10)) + 5;
-    const dur = 19 + Math.random() * 20;
-    // spread the head start evenly so the flock never bunches at one edge
-    const delay = -(dur * ((i + Math.random() * 0.5) / N));
-    return `<img src="assets/avatar.png" alt="" width="${size}" height="${size}"
-      style="top:${top}px;width:${size}px;height:${size}px;
-      animation-duration:${dur.toFixed(1)}s;animation-delay:${delay.toFixed(1)}s;
-      opacity:${(0.4 + Math.random() * 0.35).toFixed(2)}">`;
-  }).join('');
+  const N = window.innerWidth < 700 ? 6 : 12;
+  const place = () => {
+    const H = window.innerHeight;
+    flock.innerHTML = Array.from({ length: N }, (_, i) => {
+      const size = 26 + Math.round(Math.random() * 34);
+      // golden-ratio spacing keeps them apart without a collision pass
+      const top = Math.round(((i * 0.618034) % 1) * (H - size - 20)) + 10;
+      const dur = 34 + Math.random() * 42;
+      const delay = -(dur * ((i + Math.random() * 0.6) / N));
+      return `<img src="assets/avatar.png" alt="" width="${size}" height="${size}"
+        style="top:${top}px;width:${size}px;height:${size}px;
+        animation-duration:${dur.toFixed(1)}s;animation-delay:${delay.toFixed(1)}s;
+        opacity:${(0.09 + Math.random() * 0.13).toFixed(3)}">`;
+    }).join('');
+  };
+  place();
+  let resizeTimer;
+  addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(place, 400); });
 }
 
 /* ---------- wall simulator: the real evaluate(), not a mock ---------- */

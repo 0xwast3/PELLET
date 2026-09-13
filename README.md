@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="assets/avatar-background.png" alt="The PELLET owl" width="180">
-</p>
-
 [![PELLET — a wake terminal that catches whale wallets waking after months of silence](assets/banner.png)](assets/banner.png)
 
 # PELLET

@@ -7,6 +7,7 @@ const rules = DEFAULT_RULES;
 const feed = $('#feed');
 const output = $('#output');
 const inspect = $('#inspect');
+const walletPane = $('#wallet');
 const input = $('#in');
 const runBtn = $('#run');
 
@@ -41,13 +42,118 @@ function line(html = '', cls = '') {
 function showTab(name) {
   $$('.pane-head [data-tab]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tab === name)));
   inspect.hidden = name !== 'inspect';
+  walletPane.hidden = name !== 'wallet';
   output.hidden = name !== 'output';
 }
+
+/* ---------- roost: a local watchlist, mirrored to the CLI's `pellet roost` ---------- */
+const ROOST_KEY = 'pellet.roost';
+const roost = new Set();
+try { for (const h of JSON.parse(localStorage.getItem(ROOST_KEY) || '[]')) roost.add(h); } catch { /* private mode */ }
+function toggleRoost(handle) {
+  roost.has(handle) ? roost.delete(handle) : roost.add(handle);
+  try { localStorage.setItem(ROOST_KEY, JSON.stringify([...roost])); } catch { /* not fatal */ }
+}
+
+/* ---------- wallet dossier: what the visitor sees when they check a sleeper ---------- */
+let openWallet = null;
+
+function drawWallet(handle) {
+  openWallet = handle;
+  const p = handle ? engine.cough(handle) : null;
+  if (!p) {
+    walletPane.innerHTML = `<p class="notice" style="margin:0">Click a
+      <span class="WAKE">handle</span> in the stream to open that wallet.</p>`;
+    return;
+  }
+  const w = p.wallet;
+  const sleeping = p.dormancyDays >= rules.sleepDays;
+  const kv = (k, v) => `<div class="kv"><span>${k}</span><b>${v}</b></div>`;
+  const by = Object.entries(p.observed.refusedBy);
+  const decided = p.observed.cast + p.observed.refused;
+  const hit = decided ? Math.round((p.observed.cast / decided) * 100) : 0;
+
+  walletPane.innerHTML = `
+    <div class="top">
+      <b>@${w.handle}</b>
+      <span class="state ${sleeping ? 'sleeping' : 'awake'}">${sleeping ? 'STILL ASLEEP' : 'AWAKE'}</span>
+    </div>
+    <div class="addr">${w.address}</div>
+
+    <div class="acts">
+      <button data-act="cough">COUGH PELLET</button>
+      <button data-act="copy">COPY ADDRESS</button>
+      <button data-act="roost" aria-pressed="${roost.has(w.handle)}">${roost.has(w.handle) ? 'ROOSTED' : 'ROOST'}</button>
+    </div>
+
+    <h4>RECORD</h4>
+    <div class="receipt">
+      ${kv('dna', w.dna)}
+      ${kv('trades', w.trades)}
+      ${kv('win rate', ((w.winRate || 0) * 100).toFixed(0) + '%')}
+      ${kv('median ticket', w.medianTicketEth + ' ETH')}
+      ${kv('realized', w.realizedEth + ' ETH')}
+      ${kv('dormancy', p.dormancyDays.toFixed(1) + 'd')}
+      ${kv('threshold', rules.sleepDays + 'd')}
+    </div>
+
+    <h4>THIS SESSION</h4>
+    <div class="receipt">
+      ${kv('events seen', p.observed.events)}
+      ${kv('wakes', p.observed.wakes)}
+      ${kv('cast', p.observed.cast)}
+      ${kv('refused', p.observed.refused)}
+    </div>
+    ${decided ? `<div style="margin-top:10px">
+      <div class="kv"><span>cleared the walls</span><b>${hit}% of ${decided}</b></div>
+      <div class="bar"><i style="width:${hit}%"></i></div>
+    </div>` : ''}
+
+    ${by.length ? `<h4>REFUSED BY WALL</h4><div class="chips">
+      ${by.map(([k, v]) => `<span class="chip">${k} × ${v}</span>`).join('')}</div>` : ''}
+
+    <h4>TOUCHED</h4>
+    <div class="chips">${(w.touched || []).slice(0, 10).map((t) => `<span class="chip">$${t}</span>`).join('')
+      || '<span class="chip">nothing yet</span>'}</div>
+
+    <h4>TRAIL</h4>
+    <div class="trail">${p.trail.length ? p.trail.map((e) => {
+      const d = e.candidate?.decision;
+      return `<div class="tr">
+        <span class="dim">${fmt.clock(e.at)}</span>
+        <span class="${e.type}">${e.type}</span>
+        <span class="dim">${e.symbol ? '$' + e.symbol : '—'}</span>
+        <span class="${d ? (d.cast ? 'pos' : 'neg') : 'dim'}">${d ? (d.cast ? 'CAST' : 'PASS') : '—'}</span>
+      </div>`;
+    }).join('') : '<div class="empty">Nothing observed yet. Let the stream run.</div>'}</div>
+
+    <p class="notice" style="margin-top:16px">
+      <b>Synthetic.</b> On a static host this record is built from the bootstrap
+      set. The CLI writes the same shape to a file with
+      <code>pellet cough ${w.handle}</code>.
+    </p>`;
+
+  walletPane.querySelector('[data-act="cough"]').addEventListener('click', () => {
+    run(`cough ${w.handle}`);
+  });
+  walletPane.querySelector('[data-act="copy"]').addEventListener('click', async (ev) => {
+    try { await navigator.clipboard.writeText(w.address); ev.target.textContent = 'COPIED'; }
+    catch { ev.target.textContent = 'SELECT IT'; }
+    setTimeout(() => { ev.target.textContent = 'COPY ADDRESS'; }, 1500);
+  });
+  walletPane.querySelector('[data-act="roost"]').addEventListener('click', (ev) => {
+    toggleRoost(w.handle);
+    ev.target.setAttribute('aria-pressed', String(roost.has(w.handle)));
+    ev.target.textContent = roost.has(w.handle) ? 'ROOSTED' : 'ROOST';
+  });
+}
+
+function openWalletTab(handle) { drawWallet(handle); showTab('wallet'); }
 
 /* ---------- commands ---------- */
 const RAIL = [
   ['READ', ['help', 'rules', 'doctor']],
-  ['DATA', ['sleepers', 'flow', 'wake']],
+  ['DATA', ['sleepers', 'flow', 'wake', 'check']],
   ['EXPORT', ['cough', 'clear']]
 ];
 
@@ -63,6 +169,7 @@ const COMMANDS = {
       ['wake [--cast-only]', 'the last decisions, refusals included'],
       ['wallet <handle>', 'one wallet read out'],
       ['cough [handle]', 'the pellet — full record for one wallet'],
+      ['check <handle>', 'open a wallet in the WALLET pane'],
       ['doctor', 'what this page is connected to'],
       ['clear', 'wipe this pane']
     ]) line('  ' + c(pad(k, 20), 'WAKE') + c(v, 'dim'));
@@ -150,6 +257,12 @@ const COMMANDS = {
     line();
   },
 
+  check(handle) {
+    const target = handle ? handle.replace(/^@/, '') : engine.sleepers(1)[0]?.handle;
+    if (!target || !engine.state.wallets.get(target)) return fail(`unknown wallet "${handle || ''}" · try sleepers`);
+    openWalletTab(target);
+  },
+
   wallet(handle) {
     if (!handle) return fail('usage: wallet <handle> · try sleepers first');
     const w = engine.state.wallets.get(handle.replace(/^@/, ''));
@@ -223,10 +336,12 @@ function rowNode(e) {
   row.innerHTML =
     `<span class="t">${fmt.clock(e.at)}</span>` +
     `<span class="${e.type}">${e.type}</span>` +
-    `<span>${e.handle ? '@' + e.handle : ''}</span>` +
+    `<span>${e.handle ? `<span class="who-link" data-who="${e.handle}">@${e.handle}</span>` : ''}</span>` +
     `<span class="dim">${e.symbol ? '$' + e.symbol : ''}</span>` +
     `<span class="${verdict === 'CAST' ? 'pos' : verdict === 'PASS' ? 'neg' : 'dim'}">${
       esc(e.line.replace(/ · (CAST|PASS)$/, ''))}</span>`;
+  const who = row.querySelector('[data-who]');
+  if (who) who.addEventListener('click', (ev) => { ev.stopPropagation(); openWalletTab(who.dataset.who); });
   if (e.candidate) row.addEventListener('click', () => { selected = e.id; paintSelection(); drawInspector(e); showTab('inspect'); });
   return row;
 }
@@ -257,6 +372,7 @@ function drawInspector(e) {
       <span class="n">${w.name}</span><span class="v">${w.shown}</span><span class="dim">${w.want}</span>
     </div>`).join('')}
     <div class="verdict ${d.cast ? 'cast' : 'pass'}">${d.cast ? 'CAST' : 'PASS'}<small>${esc(d.reason)}</small></div>
+    <div class="acts" style="margin:14px 0 0"><button data-act="open-wallet">CHECK @${e.handle} →</button></div>
     <h4 style="margin:18px 0 8px;font:400 11px/1 var(--mono);color:var(--lime);letter-spacing:.16em">TICKET</h4>
     <div class="receipt">
       <div class="kv"><span>size</span><b>${cd.ticketEth} ETH</b></div>
@@ -265,12 +381,15 @@ function drawInspector(e) {
       <div class="kv"><span>dna</span><b>${cd.wallet.dna}</b></div>
       <div class="kv"><span>liquidity</span><b>${fmt.usd(cd.token.liquidityUsd)}</b></div>
     </div>`;
+  inspect.querySelector('[data-act="open-wallet"]')
+    ?.addEventListener('click', () => openWalletTab(e.handle));
 }
 
 function pushEvents(events) {
   for (const e of events) {
     // keep the inspector on the newest decision until the visitor picks one
     if (e.candidate && selected === null) drawInspector(e);
+    if (openWallet && e.handle === openWallet) drawWallet(openWallet);
     if ((e.type === 'MOVE' || e.type === 'CAST') && Math.random() < 0.82) continue;
     if (!matches(e)) continue;
     feed.prepend(rowNode(e));
@@ -376,6 +495,7 @@ $$('#rail button').forEach((b) => b.addEventListener('click', () => {
   for (let i = 0; i < 55; i += 1) engine.tick();
   repaintFeed(); drawDesk();
   drawInspector(engine.state.events.find((e) => e.candidate) || null);
+  drawWallet(null);
 
   COMMANDS.help();
   line(c('  ', 'dim') + '<span class="caret"></span>');

@@ -60,11 +60,11 @@ body {
 /* the grid should read as texture, not as a table */
 body::before {
   content: "";
-  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
   background: radial-gradient(ellipse 120% 80% at 50% 0%, transparent 20%, var(--ink) 78%);
 }
 
-.wrap { position: relative; z-index: 1; width: min(100% - 32px, var(--col)); margin-inline: auto; }
+.wrap { position: relative; z-index: 2; width: min(100% - 32px, var(--col)); margin-inline: auto; }
 
 a { color: var(--lime); text-decoration: none; }
 a:hover { color: var(--glow); }
@@ -267,7 +267,7 @@ code { font-family: var(--mono); }
 .cards a span { color: var(--dim); font-size: 12px; }
 
 /* ---------- footer ---------- */
-footer { margin-top: clamp(60px, 9vw, 110px); border-top: 1px solid var(--line); padding: 30px 0 44px; }
+footer { position: relative; z-index: 2; margin-top: clamp(60px, 9vw, 110px); border-top: 1px solid var(--line); padding: 30px 0 44px; }
 footer .wrap { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; }
 footer nav { display: flex; flex-wrap: wrap; gap: 18px; margin-left: auto; }
 footer nav a, footer small { color: var(--dim); font-size: 12px; }
@@ -289,7 +289,7 @@ footer nav a, footer small { color: var(--dim); font-size: 12px; }
 /* ============================================================
    Mascot marquee — two bands, opposite directions.
    ============================================================ */
-.marquee { overflow: hidden; border-block: 1px solid var(--line); background: var(--panel); }
+.marquee { position: relative; z-index: 2; overflow: hidden; border-block: 1px solid var(--line); background: var(--panel); }
 .marquee + .marquee { border-top: 0; }
 .marquee-track { display: flex; width: max-content; animation: slide 34s linear infinite; }
 .marquee.rev .marquee-track { animation-direction: reverse; animation-duration: 44s; }
@@ -316,13 +316,16 @@ footer nav a, footer small { color: var(--dim); font-size: 12px; }
 @keyframes bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
 @media (prefers-reduced-motion: reduce) { .marquee-item img { animation: none; } }
 
-/* a flock of owls, drifting, above the fold */
-.flock { position: relative; height: 132px; overflow: hidden; border-bottom: 1px solid var(--line); }
+/* a flock drifting behind the whole page — texture, never a focal point */
+.flock {
+  position: fixed; inset: 0; z-index: 0;
+  overflow: hidden; pointer-events: none;
+}
 .flock img {
-  position: absolute; image-rendering: pixelated; opacity: .5;
+  position: absolute; image-rendering: pixelated;
   animation: drift linear infinite;
 }
-@keyframes drift { from { transform: translateX(-120px); } to { transform: translateX(calc(100vw + 120px)); } }
+@keyframes drift { from { transform: translateX(-140px); } to { transform: translateX(calc(100vw + 140px)); } }
 @media (prefers-reduced-motion: reduce) { .flock { display: none; } }
 
 /* ============================================================
@@ -433,3 +436,34 @@ body.wide .nav .wrap { width: min(100% - 32px, var(--col-wide)); }
 /* nav: the X link is an icon, not a word */
 .nav .x { display: inline-flex; align-items: center; gap: 6px; }
 .nav .x svg { width: 13px; height: 13px; fill: currentColor; }
+
+
+/* ---------- wallet dossier ---------- */
+.who-link { color: var(--bone); cursor: pointer; text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 3px; }
+.who-link:hover { color: var(--lime); text-decoration-color: var(--lime); }
+
+.dossier h4 { margin: 18px 0 8px; font: 400 11px/1 var(--mono); color: var(--lime); letter-spacing: .16em; }
+.dossier .top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.dossier .top b { font: 500 16px/1.2 var(--mono); color: var(--lime); }
+.dossier .addr { font-size: 11.5px; color: var(--dim); word-break: break-all; }
+.dossier .state { display: inline-block; border: 1px solid; padding: 2px 8px; font-size: 11px; letter-spacing: .1em; }
+.dossier .state.sleeping { color: var(--lime); border-color: var(--lime); }
+.dossier .state.awake { color: var(--dim); border-color: var(--line-2); }
+.dossier .acts { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 4px; }
+.dossier .acts button {
+  background: var(--raise); border: 1px solid var(--line-2); color: var(--dim);
+  font: inherit; font-size: 11px; letter-spacing: .1em; padding: 6px 11px; cursor: pointer;
+}
+.dossier .acts button:hover { border-color: var(--lime); color: var(--lime); }
+.dossier .acts button[aria-pressed="true"] { border-color: var(--lime); color: var(--lime); background: rgba(201,249,44,.08); }
+.dossier .trail { font-size: 12px; }
+.dossier .trail .tr { display: grid; grid-template-columns: 60px 56px 1fr auto; gap: 8px; padding: 3px 0; border-bottom: 1px solid rgba(29,38,18,.7); }
+.dossier .kv + .bar { margin-bottom: 2px; }
+@media (max-width: 700px) {
+  .dossier .trail .tr { grid-template-columns: 56px 52px 1fr auto; gap: 6px; font-size: 11.5px; }
+  .dossier .acts button { flex: 1 1 auto; text-align: center; }
+}
+.dossier .trail .tr > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dossier .empty { color: var(--dim); font-size: 12px; }
+.bar { height: 4px; background: var(--line); margin-top: 5px; }
+.bar i { display: block; height: 100%; background: var(--lime); }

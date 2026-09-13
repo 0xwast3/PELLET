@@ -1,6 +1,6 @@
 {
   "name": "pellet",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "A wake terminal for Robinhood Chain \u2014 it watches whale wallets that went silent, catches the moment they move again, and tracks where the money goes next.",
   "type": "module",
   "bin": {

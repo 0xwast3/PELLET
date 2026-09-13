@@ -37,9 +37,10 @@
   <div class="rule" style="margin-top:30px"><i>//</i> PELLET WEB TERMINAL</div>
   <p style="max-width:76ch">
     The same wall logic as the CLI, running in this tab. Press
-    <strong>START</strong> and the stream runs. Click any decided row to read its
-    walls. Run a command from the rail and it opens in the side pane without
-    stopping the feed.
+    <strong>START</strong> and the stream runs. Click a row to read the five walls
+    that decided it, or <strong>click the handle to open the wallet</strong> — its
+    record, every wake it has had and every refusal it was given. Commands from
+    the rail open in the side pane without stopping the feed.
   </p>
 
   <div class="ws">
@@ -78,12 +79,14 @@
 
       <section class="pane side">
         <div class="pane-head">
-          <button data-tab="inspect" aria-pressed="true">INSPECTOR</button>
+          <button data-tab="inspect" aria-pressed="true">WALLS</button>
+          <button data-tab="wallet" aria-pressed="false">WALLET</button>
           <button data-tab="output" aria-pressed="false">OUTPUT</button>
           <span class="grow"></span>
           <button id="wipe">CLEAR</button>
         </div>
         <div class="pane-body pad" id="inspect" style="height:clamp(340px, 66vh, 760px)"></div>
+        <div class="pane-body pad dossier" id="wallet" hidden style="height:clamp(340px, 66vh, 760px)"></div>
         <div class="pane-body out-log" id="output" hidden style="height:clamp(340px, 66vh, 760px)"></div>
       </section>
     </div>
