@@ -88,3 +88,30 @@ test('the terminal reaches the analyst through the server endpoint only', () => 
   const js = read('js/terminal.js');
   assert.match(js, /fetch\('api\/ask'/, 'the analyst is not routed through /api/ask');
 });
+
+test('the buyback notice appears on every page and points at one place', () => {
+  for (const page of ['index.html', 'terminal.html', 'docs.html', 'how-it-works.html']) {
+    const html = read(page);
+    assert.match(html, /class="ann"/, `${page} is missing the announcement bar`);
+    assert.match(html, /#buyback/, `${page} does not link the buyback section`);
+  }
+  assert.match(read('index.html'), /id="buyback"/, 'the section itself must live on the landing page');
+});
+
+test('the buyback copy promises nothing it cannot keep', () => {
+  const html = read('index.html');
+  const section = html.slice(html.indexOf('id="buyback"'), html.indexOf('id="start"'));
+
+  // it has to name what is undecided rather than imply it is settled
+  assert.match(section, /NOT DECIDED/);
+  for (const field of ['Size', 'Funding source', 'Cadence', 'Start date']) {
+    assert.match(section, new RegExp(`${field}[^<]*<span class="tbd">`), `${field} is not marked TBD`);
+  }
+  // and it has to carry the disclaimer
+  assert.match(section, /Not an offer, not advice/);
+
+  // language that would turn a status note into a solicitation
+  for (const word of ['guaranteed', 'guarantee', 'profit', 'returns are', 'price will', 'moon', 'APY', 'risk-free']) {
+    assert.ok(!new RegExp(word, 'i').test(section), `buyback copy contains "${word}"`);
+  }
+});
