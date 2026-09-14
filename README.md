@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="assets/avatar-background.png" alt="The PELLET owl" width="180">
-</p>
-
 [![PELLET — a wake terminal that catches whale wallets waking after months of silence](assets/banner.png)](assets/banner.png)
 
 # PELLET
@@ -17,7 +13,7 @@ and tracks where the money goes next.
 ![Terminal](https://img.shields.io/badge/terminal-live-c9f92c?style=flat-square&labelColor=050703)
 ![No wallet connect](https://img.shields.io/badge/wallet%20connect-none-c9f92c?style=flat-square&labelColor=050703)
 ![MIT](https://img.shields.io/badge/license-MIT-c9f92c?style=flat-square&labelColor=050703)
-![Tests](https://img.shields.io/badge/tests-37-c9f92c?style=flat-square&labelColor=050703)
+![Tests](https://img.shields.io/badge/tests-48-c9f92c?style=flat-square&labelColor=050703)
 
 [Install](#install) · [Terminal](#terminal) · [Walls](#the-walls) · [Flow desk](#flow-desk) · [Pellet](#the-pellet) · [Site](#the-site) · [Commands](#commands)
 
@@ -48,6 +44,7 @@ same runtime.
 | Roost | **WORKING** | local watchlist, atomic writes |
 | Terminal UI | **WORKING** | two panes, live desk, keyboard control, clean restore |
 | Website | **WORKING** | landing, docs and a typeable web terminal on the same wall logic |
+| Analyst | **WORKING** | prompts in the web terminal, answered from the on-screen snapshot |
 
 [![pellet terminal](assets/terminal.png)](assets/terminal.png)
 
@@ -270,6 +267,14 @@ npm run site       # regenerates the two files the site copies from the repo
 terminal you can type into. It deploys as a static folder — `netlify.toml` is
 in the repository — and the same folder is what `pellet web` serves locally.
 
+The terminal there takes prompts as well as commands: anything that is not a
+command goes to an **analyst** endpoint with a snapshot of the board on screen —
+the desk, the sleepers, the last decisions and their refusing walls, and whichever
+wallet is open. It answers from that snapshot only, and it is instructed not to
+advise or predict. The key stays server-side in
+[`netlify/functions/ask.mjs`](netlify/functions/ask.mjs); without one the endpoint
+returns `501` and the rest of the site is unaffected.
+
 The site is not a re-implementation. It imports
 [`src/core/walls.mjs`](src/core/walls.mjs), the same pure module the CLI uses,
 so a verdict shown in the browser is the verdict the terminal would print.
@@ -296,6 +301,7 @@ which is also covered by a test.
 | `pellet rules [--set key=value]` | inspect and tune the decision box |
 | `pellet doctor [--probe]` | RPC, chain ID, providers, credentials |
 | `pellet web` | serve the site locally against the live runtime |
+| `ask <question>` | in the web terminal: AI analysis of what is on screen |
 
 Every flag and environment variable: [`docs/COMMANDS.md`](docs/COMMANDS.md).
 
@@ -354,6 +360,8 @@ src/services/state.mjs      atomic local state: rules and roost
 src/services/pellet.mjs     wallet record construction and Markdown export
 data/seed.json              bootstrap set
 src/core/walls.mjs          the walls — pure, shared by the CLI and the site
+src/services/ask.mjs        analyst prompt, context clamp and model call
+netlify/functions/ask.mjs   POST /api/ask — the only server-side piece
 scripts/build-site.mjs      copies the walls and the seed into site/
 server.mjs                  serves ./site plus a read-only JSON endpoint
 site/                       landing page, docs, web terminal, self-hosted fonts
@@ -366,13 +374,17 @@ assets/                     owl, banner, captures and the pipeline diagram
 npm test
 ```
 
-Thirty-seven tests, no network, no fixtures downloaded at run time. They cover wall
+Forty-eight tests, no network, no fixtures downloaded at run time. They cover wall
 ordering and refusal ownership, `N/A` versus `UNKNOWN` versus `FAIL`, dormancy
 arithmetic, the growing wallet pool, desk sorting and the distinct-wallet floor,
 trim subtraction, event-buffer capping, run-to-run determinism under a fixed
 seed, pellet reconstruction with missing fields, atomic local state, and the
 site: that its generated copies match their sources, that the pages call no
 third party, and that the synthetic label is present wherever the engine renders.
+The analyst is covered too: the probe reports key presence truthfully, a missing
+key is a `501` rather than a crash, the context builder drops unknown fields and
+caps list lengths, and nothing shaped like a key appears in anything the browser
+downloads.
 
 CI runs on Node 20, 22 and 24.
 

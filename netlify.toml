@@ -9,6 +9,14 @@
 [build.environment]
   NODE_VERSION = "22"
 
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# The analyst runs server-side so the model key never reaches the browser.
+# Set ANTHROPIC_API_KEY in Site configuration → Environment variables.
+# Without it the endpoint answers 501 and the rest of the site is unaffected.
+
 [[redirects]]
   from = "/terminal"
   to = "/terminal.html"

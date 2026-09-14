@@ -119,6 +119,17 @@ npm run web    <span class="c"># this site, served locally, on live data</span><
       </p>
       <p>The owl in the header blinks on alternate frames. <strong>If it stops
       blinking, the stream is paused.</strong></p>
+      <h3>The analyst</h3>
+      <p>Anything you type in the web terminal that is not a command is sent to the
+      analyst. It receives a snapshot of the board you are looking at — the desk,
+      the sleepers, the last decisions with their refusing walls, and whichever
+      wallet the WALLET pane has open — and answers from that alone.</p>
+      <p>The key lives on the server and never reaches the browser, so the endpoint
+      is the only server-side piece of the site. Without a key it answers
+      <code>501</code> and says so; nothing else on the page depends on it.
+      The analyst reads data. It does not advise, and it is told not to.</p>
+      <pre><code>ANTHROPIC_API_KEY=...   <span class="c"># .env locally, or Netlify env vars</span>
+PELLET_MODEL=...        <span class="c"># optional, defaults to claude-sonnet-5</span></code></pre>
       <h3>Checking a wallet</h3>
       <p>In the CLI, <code>pellet wallet &lt;handle&gt;</code> reads one wallet out and
       <code>pellet cough &lt;handle&gt;</code> writes its full record. The

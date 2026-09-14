@@ -73,3 +73,18 @@ test('the synthetic label is present wherever the engine renders', () => {
   assert.match(read('js/terminal.js'), /synthetic/);
   assert.match(read('js/engine.js'), /synthetic: true/);
 });
+
+test('the analyst key never appears in anything the browser downloads', () => {
+  for (const p of ['index.html', 'terminal.html', 'docs.html', 'how-it-works.html',
+    'js/terminal.js', 'js/site.js', 'js/engine.js', 'js/walls.js']) {
+    const body = read(p);
+    assert.ok(!/sk-ant-/.test(body), `${p} contains something shaped like a key`);
+    assert.ok(!/ANTHROPIC_API_KEY\s*[:=]\s*['"][^'"]/.test(body), `${p} assigns a key value`);
+    assert.ok(!body.includes('api.anthropic.com'), `${p} calls the model API directly from the browser`);
+  }
+});
+
+test('the terminal reaches the analyst through the server endpoint only', () => {
+  const js = read('js/terminal.js');
+  assert.match(js, /fetch\('api\/ask'/, 'the analyst is not routed through /api/ask');
+});

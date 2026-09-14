@@ -152,7 +152,7 @@ function openWalletTab(handle) { drawWallet(handle); showTab('wallet'); }
 
 /* ---------- commands ---------- */
 const RAIL = [
-  ['READ', ['help', 'rules', 'doctor']],
+  ['READ', ['help', 'rules', 'ask', 'doctor']],
   ['DATA', ['sleepers', 'flow', 'wake', 'check']],
   ['EXPORT', ['cough', 'clear']]
 ];
@@ -170,11 +170,17 @@ const COMMANDS = {
       ['wallet <handle>', 'one wallet read out'],
       ['cough [handle]', 'the pellet — full record for one wallet'],
       ['check <handle>', 'open a wallet in the WALLET pane'],
+      ['ask <question>', 'AI analysis of what is on screen right now'],
       ['doctor', 'what this page is connected to'],
       ['clear', 'wipe this pane']
     ]) line('  ' + c(pad(k, 20), 'WAKE') + c(v, 'dim'));
     line();
-    line(c('  START runs the stream. Click a decided row to inspect its walls.', 'dim'));
+    line(c('  START runs the stream. Click a decided row to inspect its walls,', 'dim'));
+    line(c('  or click a handle to open the wallet behind it.', 'dim'));
+    line();
+    line(c('  Anything that is not a command is treated as a question for the', 'dim'));
+    line(c('  analyst — it reads the board you are looking at. Try: ', 'dim') +
+      c('which wall refuses most?', 'WAKE'));
     line();
   },
 
@@ -190,6 +196,7 @@ const COMMANDS = {
     kv('wallets', engine.state.wallets.size + c('  (grows while running)', 'dim'));
     kv('tokens', engine.state.universe.size);
     kv('stream', timer ? c('running', 'pos') : c('stopped', 'dim'));
+    kv('analyst', analystState);
     kv('keys', c('none · this page cannot sign anything', 'dim'));
     line();
     if (!live) { line(c('  Run the repo with `pellet web` and reload to read live state.', 'dim')); line(); }
@@ -257,6 +264,25 @@ const COMMANDS = {
     line();
   },
 
+  ask(...words) {
+    const q = words.join(' ').trim();
+    if (!q) {
+      line();
+      line(c('  usage: ask <question>', 'dim'));
+      line(c('  Or just type the question — anything that is not a command is', 'dim'));
+      line(c('  treated as one. The analyst reads what is on screen right now:', 'dim'));
+      line(c('  the desk, the sleepers, the last decisions, and whichever wallet', 'dim'));
+      line(c('  the WALLET pane has open.', 'dim'));
+      line();
+      line(c('  try: ', 'dim') + c('which wall refuses most, and why?', 'WAKE'));
+      line(c('       ', 'dim') + c('summarise the desk in three sentences', 'WAKE'));
+      line(c('       ', 'dim') + c('is this wallet worth watching?', 'WAKE'));
+      line();
+      return;
+    }
+    analyse(q);
+  },
+
   check(handle) {
     const target = handle ? handle.replace(/^@/, '') : engine.sleepers(1)[0]?.handle;
     if (!target || !engine.state.wallets.get(target)) return fail(`unknown wallet "${handle || ''}" · try sleepers`);
@@ -318,6 +344,86 @@ const COMMANDS = {
 };
 
 function fail(msg) { line('  ' + c(msg, 'neg')); line(); }
+
+/* ---------- analyst ----------
+   The browser holds no key. It posts what is on screen plus the question to
+   /api/ask, which is a Netlify function in production and a route in
+   server.mjs locally. Both call the same module. */
+let asking = false;
+let analystState = '<span class="dim">unprobed</span>';
+
+function snapshot() {
+  const decided = engine.state.events.filter((e) => e.candidate).slice(0, 14).map((e) => ({
+    type: e.type, handle: e.handle, symbol: e.symbol,
+    ticketEth: e.candidate.ticketEth,
+    verdict: e.candidate.decision.cast ? 'CAST' : 'PASS',
+    failed: e.candidate.decision.failed,
+    reason: e.candidate.decision.reason
+  }));
+  const focusRec = openWallet ? engine.cough(openWallet) : null;
+  return {
+    mode: live ? 'live' : 'cached',
+    synthetic: !live,
+    rules,
+    counters: engine.state.counters,
+    desk: engine.desk(10),
+    sleepers: engine.sleepers(10).map((w) => ({
+      handle: w.handle, days: Math.round(w.days), dna: w.dna, medianTicketEth: w.medianTicketEth
+    })),
+    decisions: decided,
+    focus: focusRec ? {
+      handle: focusRec.wallet.handle, dna: focusRec.wallet.dna, trades: focusRec.wallet.trades,
+      winRate: focusRec.wallet.winRate, medianTicketEth: focusRec.wallet.medianTicketEth,
+      realizedEth: focusRec.wallet.realizedEth, dormancyDays: focusRec.dormancyDays,
+      cast: focusRec.observed.cast, refused: focusRec.observed.refused,
+      refusedBy: focusRec.observed.refusedBy, touched: focusRec.wallet.touched
+    } : null
+  };
+}
+
+async function analyse(question) {
+  if (asking) return fail('one question at a time');
+  asking = true;
+  const scope = openWallet ? `@${openWallet}` : 'the whole board';
+  line('  ' + c(`analysing ${scope}…`, 'dim'));
+  const pending = output.lastElementChild;
+
+  try {
+    const res = await fetch('api/ask', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ question, context: snapshot() })
+    });
+    const data = await res.json().catch(() => ({}));
+    pending?.remove();
+
+    if (res.status === 501) {
+      line('  ' + c('analyst not configured on this deployment', 'neg'));
+      line(c('  It needs ANTHROPIC_API_KEY set server-side. The key never reaches', 'dim'));
+      line(c('  the browser, which is why it cannot be supplied from here.', 'dim'));
+      line(c('  Locally: put it in .env and run npm run web.', 'dim'));
+      line();
+      return;
+    }
+    if (!res.ok) {
+      fail(`analyst failed · ${data.detail || data.error || res.status}`);
+      return;
+    }
+
+    line();
+    for (const para of String(data.text).split(/\n{2,}/)) {
+      line('  ' + c(para.replace(/\n/g, '\n  '), 'FOUND'));
+      line();
+    }
+    line(c(`  ── model output${live ? '' : ' · reading a synthetic board'} · not advice`, 'dim'));
+    line();
+  } catch (err) {
+    pending?.remove();
+    fail(`analyst unreachable · ${err?.message || err}`);
+  } finally {
+    asking = false;
+  }
+}
 
 /* ---------- stream ---------- */
 const matches = (e) => {
@@ -439,8 +545,13 @@ function run(raw) {
   history.unshift(text); hIndex = -1;
   const [name, ...rest] = text.split(/\s+/);
   const fn = COMMANDS[name.toLowerCase()];
-  if (!fn) return fail(`unknown command "${name}" · type help`);
-  try { fn(...rest); } catch (err) { fail(String(err?.message || err)); }
+  if (fn) {
+    try { fn(...rest); } catch (err) { fail(String(err?.message || err)); }
+    return;
+  }
+  // a single unknown word is almost always a typo; a phrase is a question
+  if (rest.length === 0) return fail(`unknown command "${name}" · type help, or ask a full question`);
+  analyse(text);
 }
 
 input.addEventListener('keydown', (ev) => {
@@ -488,6 +599,20 @@ $$('#rail button').forEach((b) => b.addEventListener('click', () => {
     const res = await fetch('api/state', { cache: 'no-store' });
     if (res.ok) { await res.json(); live = true; }
   } catch { /* static host — expected */ }
+
+  try {
+    const probe = await fetch('api/ask', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ question: '', context: {} })
+    });
+    // 400 means the endpoint is alive; its `configured` flag says whether a
+    // server key is actually present behind it
+    const probeBody = await probe.json().catch(() => ({}));
+    analystState = probe.status === 400
+      ? (probeBody.configured ? '<span class="pos">ready</span>' : '<span class="neg">reachable · no server key</span>')
+      : probe.status === 501 ? '<span class="neg">no server key</span>'
+      : `<span class="neg">unavailable (${probe.status})</span>`;
+  } catch { analystState = '<span class="dim">not deployed here</span>'; }
 
   $('#mode').textContent = live ? 'LOCAL RUNTIME' : 'SYNTHETIC';
   $('#mode').className = live ? 'tag' : 'tag warn';

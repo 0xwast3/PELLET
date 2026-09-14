@@ -5,6 +5,7 @@ import { createRuntime } from './src/cli/runtime.mjs';
 import { ROOT } from './src/config.mjs';
 import { read as readState, toggleRoost } from './src/services/state.mjs';
 import { cough } from './src/services/pellet.mjs';
+import { ask } from './src/services/ask.mjs';
 
 const PORT = Number(process.env.PORT || 4721);
 const SITE = join(ROOT, 'site');
@@ -50,6 +51,25 @@ const server = createServer(async (req, res) => {
     const handle = url.searchParams.get('handle');
     if (!handle) return json(res, 400, { error: 'handle required' });
     return json(res, 200, toggleRoost(handle, rt.state.rules.roostLimit));
+  }
+
+  // same handler the Netlify function calls, so local and deployed agree
+  if (url.pathname === '/api/ask') {
+    // Always drain the request body before replying. Leaving it unread stalls
+    // keep-alive, and the next request on that socket never gets served.
+    if (req.method !== 'POST') { req.resume(); return json(res, 405, { error: 'POST only' }); }
+    let raw = '';
+    let tooBig = false;
+    for await (const chunk of req) {
+      if (tooBig) continue;
+      raw += chunk;
+      if (raw.length > 64_000) { raw = ''; tooBig = true; }
+    }
+    if (tooBig) return json(res, 413, { error: 'payload too large' });
+    let payload;
+    try { payload = JSON.parse(raw); } catch { return json(res, 400, { error: 'bad json' }); }
+    const { status, body } = await ask(payload);
+    return json(res, status, body);
   }
 
   if (url.pathname === '/api/pellet') {

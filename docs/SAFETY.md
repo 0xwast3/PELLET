@@ -39,6 +39,25 @@ checking which mode produced it.
 **A negative desk row is a result.** A token ranking below zero means tracked
 wallets took money out during the window. That is information, not a gap.
 
+## The analyst
+
+The web terminal accepts prompts as well as commands. Three things are worth
+knowing about it.
+
+**It reads one snapshot.** It gets the desk, the sleepers, the recent decisions
+and the open wallet — nothing else, and no browsing. The context builder drops
+any field it does not recognise before the payload leaves the server, so a
+malformed client cannot smuggle extra text into the prompt.
+
+**It is a model, not an oracle.** It is instructed to answer only from that
+snapshot, to say what is missing rather than guess, and never to recommend
+buying, selling, entering or exiting. Treat its output as a reading of data that
+is already on your screen. When the board is synthetic, so is the analysis.
+
+**The key is server-side.** It lives in an environment variable read by
+`netlify/functions/ask.mjs` or by `server.mjs`. Nothing in `site/` holds it, and
+a test fails if anything there ever calls the model API directly.
+
 ## Credentials
 
 The optional read credentials are read-only leaderboard keys. Keep them in
